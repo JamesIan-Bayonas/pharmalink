@@ -33,7 +33,10 @@ namespace PharmaLink.API.Services
             user.PasswordHash = passwordHash;
 
             // Save User
+            user.Role = "User"; // Default role for new registrations
+
             await _userRepository.CreateAsync(user);
+
 
             return "User registered successfully.";
         }
@@ -55,7 +58,7 @@ namespace PharmaLink.API.Services
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "super_secret_key_123456789_must_be_long_enough");
+            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "");
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -71,7 +74,7 @@ namespace PharmaLink.API.Services
             };
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            return tokenHandler.WriteToken(token);  
         }
     }
 }
