@@ -23,7 +23,7 @@ namespace PharmaLink.API.Services
 
             foreach (var itemDto in request.Items)
             {
-                // 1. Validation checking for existing Stock
+                // Validation checking for existing Stock
                 var medicine = await _medicineRepository.GetByIdAsync(itemDto.MedicineId);
                 if (medicine == null)
                     throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
@@ -43,7 +43,7 @@ namespace PharmaLink.API.Services
                 });
             }
 
-            // 4. Create Sale Header Entity
+            // Create Sale Header Entity
             var saleEntity = new Sale
             {
                 UserId = userId,
@@ -51,7 +51,7 @@ namespace PharmaLink.API.Services
                 TransDate = DateTime.Now
             };
 
-            // 5. Execute Transaction
+            // Execute Transaction
             return await _saleRepository.CreateSaleTransactionAsync(saleEntity, saleItemsEntities);
         }
     }
