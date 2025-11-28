@@ -23,7 +23,7 @@ namespace PharmaLink.API.Services
 
             foreach (var itemDto in request.Items)
             {
-                // 1. Validate Medicine Exists and Check Stock
+                // 1. Validation checking for existing Stock
                 var medicine = await _medicineRepository.GetByIdAsync(itemDto.MedicineId);
                 if (medicine == null)
                     throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
@@ -31,10 +31,10 @@ namespace PharmaLink.API.Services
                 if (medicine.StackQuantity < itemDto.Quantity)
                     throw new Exception($"Insufficient stock for {medicine.Name}. Available: {medicine.StackQuantity}");
 
-                // 2. Calculate Costs
+                // Calculate Costs
                 totalAmount += medicine.Price * itemDto.Quantity;
 
-                // 3. Prepare Entity
+             
                 saleItemsEntities.Add(new SaleItem
                 {
                     MedicinesId = itemDto.MedicineId,

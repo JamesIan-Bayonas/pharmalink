@@ -23,35 +23,32 @@ namespace PharmaLink.API.Services
 
         public async Task<string> RegisterAsync(User user, string password)
         {
-            // Check if user exists
+            // Checks if user exist's
             var existingUser = await _userRepository.GetByUsernameAsync(user.UserName);
             if (existingUser != null)
                 throw new Exception("Username already exists.");
 
-            // FIX IS HERE: Use BCrypt.Net.BCrypt
+            // Use BCrypt.Net.BCrypt
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
             user.PasswordHash = passwordHash;
 
             // Save User
-            user.Role = "User"; // Default role for new registrations
-
+            user.Role = "User"; // Default User
             await _userRepository.CreateAsync(user);
-
-
             return "User registered successfully.";
         }
 
-        public async Task<string?> LoginAsync(string username, string password)
+        public async Task<string> LoginAsync(string username, string password)
         {
             // Get User
             var user = await _userRepository.GetByUsernameAsync(username);
             if (user == null) return null;
 
-            // FIX IS HERE: Use BCrypt.Net.BCrypt
+            // Implements BCrypt.Net.BCrypt
             if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 return null;
 
-            // Generate Token
+            // Generate JWT Token
             return GenerateJwtToken(user);
         }
 
