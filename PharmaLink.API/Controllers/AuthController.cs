@@ -11,15 +11,18 @@
     [ApiController]
     public class AuthController : ControllerBase
     {
+        /// <summary>
+        /// Handles authentication logic. See <see cref="AuthService"/> for implementation.
+        /// </summary>
         private readonly IAuthService _authService;
 
-    public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService)
         {
             _authService = authService;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] UserRegisterDto request)
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto request) 
         {
             try
             {
@@ -37,13 +40,10 @@
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
             var token = await _authService.LoginAsync(request.Username, request.Password);
-
             if (token == null)
                 return Unauthorized(new { message = "Invalid username or password" });
 
             return Ok(new { token = token });
         }
     }
-
-
 }
