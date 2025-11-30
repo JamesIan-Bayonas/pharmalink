@@ -54,5 +54,19 @@ namespace PharmaLink.API.Services
             // Execute Transaction
             return await _saleRepository.CreateSaleTransactionAsync(saleEntity, saleItemsEntities);
         }
+
+        public async Task<object?> GetSaleByIdAsync(int id)
+        {
+            var sale = await _saleRepository.GetByIdAsync(id);
+            if (sale == null) return null;
+
+            return new
+            {
+                sale.Id,
+                sale.UserId,
+                sale.TotalAmount,
+                sale.TransDate
+            };
+        }
     }
 }
