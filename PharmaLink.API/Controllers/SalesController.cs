@@ -9,17 +9,17 @@ namespace PharmaLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Requires JWT Token
-    public class SalesController : ControllerBase
+    //[Authorize] // It needs a JWT Token
+    public class SalesController : ControllerBase 
     {
-        private readonly ISaleService _saleService      ;
-
+        private readonly ISaleService _saleService;
         public SalesController(ISaleService saleService)
+
         {
             _saleService = saleService;
         }
 
-        [HttpPost]
+        [HttpPost()] 
         public async Task<IActionResult> CreateSale([FromBody] CreateSaleRequestDto request)
         {
             // Extract UserId from the JWT Token claims
@@ -38,11 +38,22 @@ namespace PharmaLink.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSaleById(int id)
         {
             return Ok(new { message = "Sale details would go here" });
+            //try
+            //{
+            //    var sale = await _saleService.GetSaleByIdAsync(id);
+            //    if (sale == null) return NotFound(new { message = "Sale not found" });
+
+            //    return Ok(sale);
+            //}
+            //catch (Exception ex)
+            //{
+            //    return BadRequest(new { message = ex.Message });
+            //}
         }
     }
 }
