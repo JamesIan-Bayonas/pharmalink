@@ -5,5 +5,6 @@ namespace PharmaLink.API.Interfaces
     public interface ISaleService
     {
         Task<int> ProcessSaleAsync(int userId, CreateSaleRequestDto request);
+        Task<object?> GetSaleByIdAsync(int id);
     }
 }
