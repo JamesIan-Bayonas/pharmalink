@@ -22,6 +22,17 @@ public class SaleRepository : ISaleRepository
             return await connection.QuerySingleOrDefaultAsync<Sale>(sql, new { Id = id });
         }
     }
+    public async Task<IEnumerable<Sale>> GetAllAsync()
+    {
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            // We use 'TransactionDate AS TransDate' here as well
+            const string sql = @"
+                SELECT Id, UserId, TotalAmount, TransactionDate AS TransDate 
+                FROM Sales";
+            return await connection.QueryAsync<Sale>(sql);
+        }
+    }
 
     public async Task<int> CreateSaleTransactionAsync(Sale sale, List<SaleItem> items)
     {
