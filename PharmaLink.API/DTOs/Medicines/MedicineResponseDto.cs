@@ -8,5 +8,6 @@
         public int StockQuantity { get; set; } // Matches your fixed spelling
         public decimal Price { get; set; }
         public DateTime ExpiryDate { get; set; } // The new column we added
+
     }
 }

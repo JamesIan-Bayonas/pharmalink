@@ -12,13 +12,15 @@ namespace PharmaLink.API.DTOs.Medicines
 
         [Required]
         [Range(0, int.MaxValue)]
+      
         public int StockQuantity { get; set; }
 
         [Required]
         [Range(0, double.MaxValue)]
         public decimal Price { get; set; }
-
+      
         [Required]
         public DateTime ExpiryDate { get; set; }
+
     }
 }
