@@ -7,5 +7,6 @@ namespace PharmaLink.API.Interfaces
         Task<IEnumerable<MedicineResponseDto>> GetAllMedicinesAsync();
         Task<MedicineResponseDto?> GetMedicineByIdAsync(int id);
         Task<int> CreateMedicineAsync(CreateMedicineDto request);
+
     }
 }
