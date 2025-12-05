@@ -28,8 +28,8 @@ namespace PharmaLink.API.Services
                 if (medicine == null)
                     throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
 
-                if (medicine.StackQuantity < itemDto.Quantity)
-                    throw new Exception($"Insufficient stock for {medicine.Name}. Available: {medicine.StackQuantity}");
+                if (medicine.StockQuantity < itemDto.Quantity)
+                    throw new Exception($"Insufficient stock for {medicine.Name}. Available: {medicine.StockQuantity}");
 
                 // Calculate Costs
                 totalAmount += medicine.Price * itemDto.Quantity;
