@@ -68,7 +68,7 @@ public class SaleRepository : ISaleRepository
                         // 3. Update Inventory (Deduct Stock)
                         string stockSql = @"
                             UPDATE Medicines 
-                            SET StackQuantity = StackQuantity - @Quantity 
+                            SET StockQuantity = StockQuantity - @Quantity 
                             WHERE Id = @MedicinesId";
 
                         await connection.ExecuteAsync(stockSql, new { Quantity = item.Quantity, MedicinesId = item.MedicinesId }, transaction);
@@ -83,6 +83,16 @@ public class SaleRepository : ISaleRepository
                     throw;
                 }
             }
+        }
+    }
+
+    public async Task<IEnumerable<SaleItem>> GetItemsBySaleIdAsync(int saleId)
+    {
+        using (var connection = new SqlConnection(_connectionString))
+        {
+            // Simple select and fetch to get all items belonging to this Sale ID
+            string sql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
+            return await connection.QueryAsync<SaleItem>(sql, new { SaleId = saleId });
         }
     }
 }
