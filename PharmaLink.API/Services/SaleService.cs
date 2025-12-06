@@ -5,14 +5,14 @@ using PharmaLink.API.Interfaces;
 
 namespace PharmaLink.API.Services
 {
-    public class SaleService : ISaleService
+    public class SaleService :  ISaleService
     {
         private readonly ISaleRepository _saleRepository;
         private readonly IMedicineRepository _medicineRepository; // Needed to check prices/stock
 
         public SaleService(ISaleRepository saleRepo, IMedicineRepository medicineRepo)
         {
-            _saleRepository = saleRepo;
+            _saleRepository = saleRepo;     
             _medicineRepository = medicineRepo;
         }
 
@@ -54,19 +54,69 @@ namespace PharmaLink.API.Services
             // Execute Transaction
             return await _saleRepository.CreateSaleTransactionAsync(saleEntity, saleItemsEntities);
         }
-
         public async Task<object?> GetSaleByIdAsync(int id)
         {
+            // Fetch Header
             var sale = await _saleRepository.GetByIdAsync(id);
             if (sale == null) return null;
 
-            return new
+            // Fetch Details (Calling the method you asked about!)
+            var items = await _saleRepository.GetItemsBySaleIdAsync(id);
+
+            // Map to DTO
+            var response = new SaleResponseDto
             {
-                sale.Id,
-                sale.UserId,
-                sale.TotalAmount,
-                sale.TransDate
+                Id = sale.Id,
+                UserId = sale.UserId,
+                TotalAmount = sale.TotalAmount,
+                TransactionDate = sale.TransDate,
+                Items = new List<SaleItemResponseDto>()
             };
+
+            // Map Items
+            foreach (var item in items)
+            {
+                response.Items.Add(new SaleItemResponseDto
+                {
+                    Id = item.Id,
+                    MedicineId = item.MedicinesId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
+                });
+            }
+
+            return response;
         }
+
+        public async Task<IEnumerable<object>> GetAllSalesAsync()
+        {
+            var sales = await _saleRepository.GetAllAsync();
+            var result = new List<object>();
+
+            foreach (var sale in sales)
+            {
+                var items = await _saleRepository.GetItemsBySaleIdAsync(sale.Id);
+                
+                var response = new SaleResponseDto
+                {
+                    Id = sale.Id,
+                    UserId = sale.UserId,
+                    TotalAmount = sale.TotalAmount,
+                    TransactionDate = sale.TransDate,
+                    Items = items.Select(item => new SaleItemResponseDto
+                    {
+                        Id = item.Id,
+                        MedicineId = item.MedicinesId,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    }).ToList()
+                };
+                
+                result.Add(response);
+            }
+
+            return result;
+        }
+
     }
 }
