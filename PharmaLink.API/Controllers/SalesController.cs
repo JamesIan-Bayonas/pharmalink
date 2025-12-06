@@ -14,7 +14,6 @@ namespace PharmaLink.API.Controllers
     {
         private readonly ISaleService _saleService;
         public SalesController(ISaleService saleService)
-
         {
             _saleService = saleService;
         }
@@ -27,7 +26,6 @@ namespace PharmaLink.API.Controllers
             if (userIdClaim == null) return Unauthorized();
 
             int userId = int.Parse(userIdClaim.Value);
-
             try
             {
                 var saleId = await _saleService.ProcessSaleAsync(userId, request);
@@ -38,22 +36,36 @@ namespace PharmaLink.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-        
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSaleById(int id)
         {
-            return Ok(new { message = "Sale details would go here" });
-            //try
-            //{
-            //    var sale = await _saleService.GetSaleByIdAsync(id);
-            //    if (sale == null) return NotFound(new { message = "Sale not found" });
+            try
+            {
+                var saleDto = await _saleService.GetSaleByIdAsync(id);
+                if (saleDto == null) return NotFound(new { message = "Sale not found" });
 
-            //    return Ok(sale);
-            //}
-            //catch (Exception ex)
-            //{
-            //    return BadRequest(new { message = ex.Message });
-            //}
+                return Ok(saleDto);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllSales()
+        {
+            try
+            {
+                var sales = await _saleService.GetAllSalesAsync();
+                return Ok(sales);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
     }
 }
