@@ -36,8 +36,8 @@ public class MedicineRepository : IMedicineRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             string sql = @"
-                INSERT INTO Medicines (CategoryId, Name, StackQuantity, Price)
-                VALUES (@CategoryId, @Name, @StackQuantity, @Price);
+                INSERT INTO Medicines (CategoryId, Name, StockQuantity, Price)
+                VALUES (@CategoryId, @Name, @StockQuantity, @Price);
                 SELECT CAST(SCOPE_IDENTITY() as int);";
             return await connection.QuerySingleAsync<int>(sql, medicine);
         }
@@ -45,7 +45,7 @@ public class MedicineRepository : IMedicineRepository
 
     public async Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction = null)
     {
-        string sql = "UPDATE Medicines SET StackQuantity = StackQuantity - @Quantity WHERE Id = @Id";
+        string sql = "UPDATE Medicines SET StockQuantity = StockQuantity - @Quantity WHERE Id = @Id";
         var parameters = new { Quantity = quantityDeducted, Id = id };
 
         // IF a transaction is passed (like from SaleService), use it.
