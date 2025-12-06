@@ -30,7 +30,7 @@ namespace PharmaLink.API.Controllers
                     CategoryId = request.CategoryId,
                     StockQuantity = request.StockQuantity,
                     Price = request.Price,
-                    ExpiryDate = request.ExpiryDate
+                    ExpiryDate = request.ExpiryDate.Value
                 };
 
                 // 2. Save to Database

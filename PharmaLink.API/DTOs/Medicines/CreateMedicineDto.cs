@@ -20,7 +20,7 @@ namespace PharmaLink.API.DTOs.Medicines
         public decimal Price { get; set; }
       
         [Required]
-        public DateTime ExpiryDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
 
     }
 }
