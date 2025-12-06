@@ -36,9 +36,9 @@ public class MedicineRepository : IMedicineRepository
         using (var connection = new SqlConnection(_connectionString))
         {
             string sql = @"
-                INSERT INTO Medicines (CategoryId, Name, StockQuantity, Price)
-                VALUES (@CategoryId, @Name, @StockQuantity, @Price);
-                SELECT CAST(SCOPE_IDENTITY() as int);";
+            INSERT INTO Medicines (CategoryId, Name, StockQuantity, Price, ExpiryDate)
+            VALUES (@CategoryId, @Name, @StockQuantity, @Price, @ExpiryDate);
+            SELECT CAST(SCOPE_IDENTITY() as int);";
             return await connection.QuerySingleAsync<int>(sql, medicine);
         }
     }

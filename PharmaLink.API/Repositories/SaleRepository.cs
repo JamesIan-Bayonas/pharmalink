@@ -47,7 +47,7 @@ public class SaleRepository : ISaleRepository
                 {
                     // 1. Insert Sale Header and get the new ID
                     string saleSql = @"
-                        INSERT INTO Sales (UserId, TotalAmount, TransDate) 
+                        INSERT INTO Sales (UserId, TotalAmount, TransactionDate) 
                         VALUES (@UserId, @TotalAmount, @TransDate);
                         SELECT CAST(SCOPE_IDENTITY() as int);";
 
