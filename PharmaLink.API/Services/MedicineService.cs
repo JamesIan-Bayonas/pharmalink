@@ -55,8 +55,8 @@ namespace PharmaLink.API.Services
                 CategoryId = request.CategoryId,
                 StockQuantity = request.StockQuantity,
                 Price = request.Price,
-                ExpiryDate = request.ExpiryDate
-            };
+                ExpiryDate = request.ExpiryDate.Value
+            };  
 
             return await _medicineRepository.CreateAsync(newMedicine);
         }
