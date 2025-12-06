@@ -10,7 +10,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Services to container
+// Add Services to container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
@@ -42,15 +42,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 2. Dependency Injection Registration
+// Dependency Injection Registration
+// Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMedicineRepository, MedicineRepository>();
 builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
+//Services
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IMedicineService, MedicineService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-// 3. JWT Auth Setup (THE MISSING PIECE)
+// JWT Auth Setup (THE MISSING PIECE)
 var jwtKey = builder.Configuration.GetSection("JwtSettings:Key").Value
              ?? "this_is_a_very_long_super_secret_key_for_pharmalink_security";
 
@@ -72,7 +78,7 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// 4. Pipeline Configuration
+// Pipeline Configuration
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
