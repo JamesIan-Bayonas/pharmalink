@@ -13,12 +13,12 @@ namespace PharmaLink.API.Services
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
-        private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, ITokenService tokenService)
         {
             _userRepository = userRepository;
-            _configuration = configuration;
+            _tokenService = tokenService;
         }
 
         public async Task<string> RegisterAsync(User user, string password)
@@ -49,29 +49,9 @@ namespace PharmaLink.API.Services
                 return null;
 
             // Generate JWT Token
-            return GenerateJwtToken(user);
+            return _tokenService.GenerateToken(user);
         }
 
-        private string GenerateJwtToken(User user)
-        {
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.ASCII.GetBytes(jwtSettings["Key"] ?? "");
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim("uid", user.Id.ToString())
-                }),
-                Expires = DateTime.UtcNow.AddDays(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);  
-        }
+       
     }
 }
