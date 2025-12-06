@@ -60,8 +60,8 @@ public class SaleRepository : ISaleRepository
 
                         // Insert Sale Item
                         string itemSql = @"
-                            INSERT INTO SalesItems (SaleId, MedicinesId, Quantity, UnitPrice)
-                            VALUES (@SaleId, @MedicinesId, @Quantity, @UnitPrice)";
+                            INSERT INTO SalesItems (SaleId, MedicineId, Quantity, UnitPrice)
+                            VALUES (@SaleId, @MedicineId, @Quantity, @UnitPrice)";
 
                         await connection.ExecuteAsync(itemSql, item, transaction);
 
@@ -69,9 +69,9 @@ public class SaleRepository : ISaleRepository
                         string stockSql = @"
                             UPDATE Medicines 
                             SET StockQuantity = StockQuantity - @Quantity 
-                            WHERE Id = @MedicinesId";
+                            WHERE Id = @MedicineId";
 
-                        await connection.ExecuteAsync(stockSql, new { Quantity = item.Quantity, MedicinesId = item.MedicinesId }, transaction);
+                        await connection.ExecuteAsync(stockSql, new { Quantity = item.Quantity, MedicineId = item.MedicineId }, transaction);
                     }
 
                     transaction.Commit(); // Save changes

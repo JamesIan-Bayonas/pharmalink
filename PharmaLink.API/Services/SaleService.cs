@@ -37,7 +37,7 @@ namespace PharmaLink.API.Services
              
                 saleItemsEntities.Add(new SaleItem
                 {
-                    MedicinesId = itemDto.MedicineId,
+                    MedicineId = itemDto.MedicineId,
                     Quantity = itemDto.Quantity,
                     UnitPrice = medicine.Price
                 });
@@ -76,12 +76,15 @@ namespace PharmaLink.API.Services
             // Map Items
             foreach (var item in items)
             {
+                var medicine = await _medicineRepository.GetByIdAsync(item.MedicineId);
+                
                 response.Items.Add(new SaleItemResponseDto
                 {
                     Id = item.Id,
-                    MedicineId = item.MedicinesId,
+                    MedicineId = item.MedicineId,
+                    MedicineName = medicine?.Name,
                     Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice
+                    UnitPrice = item.UnitPrice,
                 });
             }
 
@@ -103,14 +106,22 @@ namespace PharmaLink.API.Services
                     UserId = sale.UserId,
                     TotalAmount = sale.TotalAmount,
                     TransactionDate = sale.TransDate,
-                    Items = items.Select(item => new SaleItemResponseDto
+                    Items = new List<SaleItemResponseDto>()
+                };
+
+                foreach (var item in items)
+                {
+                    var medicine = await _medicineRepository.GetByIdAsync(item.MedicineId);
+                    
+                    response.Items.Add(new SaleItemResponseDto
                     {
                         Id = item.Id,
-                        MedicineId = item.MedicinesId,
+                        MedicineId = item.MedicineId,
+                        MedicineName = medicine?.Name,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice
-                    }).ToList()
-                };
+                    });
+                }
                 
                 result.Add(response);
             }
