@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PharmaLink.API.DTOs.Categories;
-using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Controllers
 {

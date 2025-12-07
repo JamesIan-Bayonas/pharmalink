@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PharmaLink.API.DTOs.Sales;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.ServiceInterface;
 using PharmaLink.API.Services;
 
 namespace PharmaLink.API.Controllers
