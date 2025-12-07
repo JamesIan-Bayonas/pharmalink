@@ -7,6 +7,6 @@
         public int CategoryId { get; set; }
         public int StockQuantity { get; set; }
         public decimal Price { get; set; }
-        public DateTime ExpiryDate { get; set; }
+        public required DateTime ExpiryDate { get; set; }
     }
 }

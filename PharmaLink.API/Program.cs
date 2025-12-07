@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
-using PharmaLink.API.Interfaces;
-using PharmaLink.API.Middleware; 
+using PharmaLink.API.Interfaces.RepositoryInterface;
+using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Middleware;
 using PharmaLink.API.Repositories;
 using PharmaLink.API.Services;
 using System.Text;
@@ -37,7 +38,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });

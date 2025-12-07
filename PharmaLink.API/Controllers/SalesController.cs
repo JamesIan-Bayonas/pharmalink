@@ -10,13 +10,9 @@ namespace PharmaLink.API.Controllers
     [Route("api/[controller]")]
     [ApiController]
     //[Authorize] // It needs a JWT Token
-    public class SalesController : ControllerBase 
+    public class SalesController(ISaleService saleService) : ControllerBase 
     {
-        private readonly ISaleService _saleService;
-        public SalesController(ISaleService saleService)
-        {
-            _saleService = saleService;
-        }
+        private readonly ISaleService _saleService = saleService;
 
         [HttpPost()] 
         public async Task<IActionResult> CreateSale([FromBody] CreateSaleRequestDto request)

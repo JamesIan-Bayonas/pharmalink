@@ -14,84 +14,74 @@ namespace PharmaLink.API.Repositories
         // Required by ISaleRepository
         public async Task<Sale?> GetByIdAsync(int id)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                const string sql = "SELECT * FROM Sales WHERE Id = @Id";
-                return await connection.QuerySingleOrDefaultAsync<Sale>(sql, new { Id = id });
-            }
+            using var connection = new SqlConnection(_connectionString);
+            const string sql = "SELECT * FROM Sales WHERE Id = @Id";
+            return await connection.QuerySingleOrDefaultAsync<Sale>(sql, new { Id = id });
         }
         public async Task<IEnumerable<Sale>> GetAllAsync()
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                // We use 'TransactionDate AS TransDate' here as well
-                const string sql = @"
+            using var connection = new SqlConnection(_connectionString);
+            // We use 'TransactionDate AS TransDate' here as well
+            const string sql = @"
                 SELECT Id, UserId, TotalAmount, TransactionDate AS TransDate 
                 FROM Sales";
-                return await connection.QueryAsync<Sale>(sql);
-            }
+            return await connection.QueryAsync<Sale>(sql);
         }
 
         public async Task<int> CreateSaleTransactionAsync(Sale sale, List<SaleItem> items)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-                // Begin Transaction: All or Nothing
-                using (var transaction = connection.BeginTransaction())
-                {
-                    try
-                    {
-                        // 1. Insert Sale Header and get the new ID
-                        string saleSql = @"
+            // Begin Transaction: All or Nothing
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                // 1. Insert Sale Header and get the new ID
+                string saleSql = @"
                         INSERT INTO Sales (UserId, TotalAmount, TransactionDate) 
                         VALUES (@UserId, @TotalAmount, @TransDate);
                         SELECT CAST(SCOPE_IDENTITY() as int);";
 
-                        int newSaleId = await connection.QuerySingleAsync<int>(saleSql, sale, transaction);
+                int newSaleId = await connection.QuerySingleAsync<int>(saleSql, sale, transaction);
 
-                        // 2. Process Items
-                        foreach (var item in items)
-                        {
-                            item.SaleId = newSaleId;
+                // 2. Process Items
+                foreach (var item in items)
+                {
+                    item.SaleId = newSaleId;
 
-                            // Insert Sale Item
-                            string itemSql = @"
+                    // Insert Sale Item
+                    string itemSql = @"
                             INSERT INTO SalesItems (SaleId, MedicineId, Quantity, UnitPrice)
                             VALUES (@SaleId, @MedicineId, @Quantity, @UnitPrice)";
 
-                            await connection.ExecuteAsync(itemSql, item, transaction);
+                    await connection.ExecuteAsync(itemSql, item, transaction);
 
-                            // 3. Update Inventory (Deduct Stock)
-                            string stockSql = @"
+                    // 3. Update Inventory (Deduct Stock)
+                    string stockSql = @"
                             UPDATE Medicines 
                             SET StockQuantity = StockQuantity - @Quantity 
                             WHERE Id = @MedicineId";
 
-                            await connection.ExecuteAsync(stockSql, new { item.Quantity, item.MedicineId }, transaction);
-                        }
-
-                        transaction.Commit(); // Save changes
-                        return newSaleId;
-                    }
-                    catch (Exception)
-                    {
-                        transaction.Rollback(); // Undo everything if error
-                        throw;
-                    }
+                    await connection.ExecuteAsync(stockSql, new { item.Quantity, item.MedicineId }, transaction);
                 }
+
+                transaction.Commit(); // Save changes
+                return newSaleId;
+            }
+            catch (Exception)
+            {
+                transaction.Rollback(); // Undo everything if error
+                throw;
             }
         }
 
         public async Task<IEnumerable<SaleItem>> GetItemsBySaleIdAsync(int saleId)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                // Simple select and fetch to get all items belonging to this Sale ID
-                string sql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
-                return await connection.QueryAsync<SaleItem>(sql, new { SaleId = saleId });
-            }
+            using var connection = new SqlConnection(_connectionString);
+            // Simple select and fetch to get all items belonging to this Sale ID
+            string sql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
+            return await connection.QueryAsync<SaleItem>(sql, new { SaleId = saleId });
         }
     }
 }
