@@ -1,6 +1,8 @@
 ﻿using PharmaLink.API.DTOs.Categories;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.RepositoryInterface;
+using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
