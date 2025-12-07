@@ -3,8 +3,7 @@
 
 using Microsoft.IdentityModel.Tokens;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces.RepositoryInterface;
-using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -22,7 +21,7 @@ namespace PharmaLink.API.Services
             _tokenService = tokenService;
         }
 
-        public async Task<string> RegisterAsync(User user, string password, string role)
+        public async Task<string> RegisterAsync(User user, string password)
         {
             // Checks if user exist's
             var existingUser = await _userRepository.GetByUsernameAsync(user.UserName);
@@ -33,10 +32,8 @@ namespace PharmaLink.API.Services
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
             user.PasswordHash = passwordHash;
 
-            role = string.IsNullOrEmpty(role) ? "User" : role;
-
-            user.Role = role;
-
+            // Save User
+            user.Role = "User"; // Default User
             await _userRepository.CreateAsync(user);
             return "User registered successfully.";
         }
@@ -53,6 +50,8 @@ namespace PharmaLink.API.Services
 
             // Generate JWT Token
             return _tokenService.GenerateToken(user);
-        }  
+        }
+
+       
     }
 }

@@ -1,7 +1,6 @@
 ﻿using PharmaLink.API.DTOs.Medicines;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces.RepositoryInterface;
-using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Interfaces;
 
 namespace PharmaLink.API.Services
 {
@@ -56,7 +55,7 @@ namespace PharmaLink.API.Services
                 CategoryId = request.CategoryId,
                 StockQuantity = request.StockQuantity,
                 Price = request.Price,
-                ExpiryDate = request.ExpiryDate
+                ExpiryDate = request.ExpiryDate.Value
             };  
 
             return await _medicineRepository.CreateAsync(newMedicine);

@@ -1,7 +1,6 @@
 ﻿using PharmaLink.API.DTOs.Sales;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces.RepositoryInterface;
-using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Interfaces;
 //using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
