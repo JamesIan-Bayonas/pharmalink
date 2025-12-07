@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace PharmaLink.API.DTOs.Sales
 {
@@ -14,11 +15,18 @@ namespace PharmaLink.API.DTOs.Sales
 
     public class SaleItemResponseDto
     {
-        public int Id { get; set; }
-        public int MedicineId { get; set; }
-        public string? MedicineName { get; set;  } // fetch this via JOIN
-        public int Quantity { get; set; }
-        public decimal UnitPrice { get; set; }
+        [Required]
+        public required int Id { get; set; }
+
+        [Required]
+        public required int MedicineId { get; set; }
+        [Required]
+        public required string MedicineName { get; set;  } // fetch this via JOIN
+        [Required]
+        public required int Quantity { get; set; }
+        [Required]
+        public required decimal UnitPrice { get; set; }
+        [Required]
         public decimal SubTotal => Quantity * UnitPrice;
     }
 }

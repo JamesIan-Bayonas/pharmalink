@@ -2,12 +2,12 @@
 {
     public class MedicineResponseDto
     {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public int CategoryId { get; set; }
-        public int StockQuantity { get; set; } // Matches your fixed spelling
-        public decimal Price { get; set; }
-        public DateTime ExpiryDate { get; set; } // The new column we added
+        public required int Id { get; set; }
+        public required string Name { get; set; }
+        public required int CategoryId { get; set; }
+        public required int StockQuantity { get; set; } // Matches your fixed spelling
+        public required decimal Price { get; set; }
+        public required DateTime ExpiryDate { get; set; } // The new column we added
 
     }
 }

@@ -1,8 +1,13 @@
-﻿namespace PharmaLink.API.DTOs.Categories
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace PharmaLink.API.DTOs.Categories
 {
     public class CategoryResponseDto
     {
-        public int Id { get; set; }
-        public string? Name { get; set; }
+        [Required]
+        public required int Id { get; set; }
+
+        [Required]
+        public required string Name { get; set; }
     }
 }
