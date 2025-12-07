@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
 using PharmaLink.API.DTOs.Medicines;
+using PharmaLink.API.Interfaces.RepositoryInterface;
+using Microsoft.Identity.Client;
 
 namespace PharmaLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Lock this down so strangers can't add drugs
+    [Authorize(Roles = "Admin")]
     public class MedicinesController : ControllerBase
     {
         private readonly IMedicineRepository _medicineRepository;
@@ -30,7 +31,7 @@ namespace PharmaLink.API.Controllers
                     CategoryId = request.CategoryId,
                     StockQuantity = request.StockQuantity,
                     Price = request.Price,
-                    ExpiryDate = request.ExpiryDate.Value
+                    ExpiryDate = request.ExpiryDate
                 };
 
                 // 2. Save to Database
@@ -53,10 +54,10 @@ namespace PharmaLink.API.Controllers
         {
             try
             {
-                // 1. Get raw data from DB
+                // Get raw data from DB
                 var medicines = await _medicineRepository.GetAllAsync();
 
-                // 2. Map Entity -> DTO (Manual Mapping)
+                // Map Entity -> DTO (Manual Mapping)
                 // This converts the list of database rows into a clean JSON list
                 var medicineDtos = medicines.Select(m => new MedicineResponseDto
                 {
@@ -106,6 +107,23 @@ namespace PharmaLink.API.Controllers
             }
         }
 
-        // You likely already have [HttpGet] here...
+        // PATCH: api/Medicines/5/stock
+        [HttpPatch("{id}/stock")]
+        public async Task<IActionResult> UpdateStock(int id, [FromBody] UpdateMedicineStockDto request)
+        {
+            try
+            {
+                bool success = await _medicineRepository.UpdateStockAsync(id, request.Quantity);
+
+                if (!success)
+                    return NotFound(new { message = "Medicine not found" });
+
+                return Ok(new { message = "Stock updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
