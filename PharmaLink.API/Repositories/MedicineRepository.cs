@@ -13,32 +13,26 @@ namespace PharmaLink.API.Repositories
 
         public async Task<Medicine?> GetByIdAsync(int id)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                string sql = "SELECT * FROM Medicines WHERE Id = @Id";
-                return await connection.QuerySingleOrDefaultAsync<Medicine>(sql, new { Id = id });
-            }
+            using var connection = new SqlConnection(_connectionString);
+            string sql = "SELECT * FROM Medicines WHERE Id = @Id";
+            return await connection.QuerySingleOrDefaultAsync<Medicine>(sql, new { Id = id });
         }
 
         public async Task<IEnumerable<Medicine>> GetAllAsync()
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                string sql = "SELECT * FROM Medicines";
-                return await connection.QueryAsync<Medicine>(sql);
-            }
+            using var connection = new SqlConnection(_connectionString);
+            string sql = "SELECT * FROM Medicines";
+            return await connection.QueryAsync<Medicine>(sql);
         }
 
         public async Task<int> CreateAsync(Medicine medicine)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                string sql = @"
+            using var connection = new SqlConnection(_connectionString);
+            string sql = @"
             INSERT INTO Medicines (CategoryId, Name, StockQuantity, Price, ExpiryDate)
             VALUES (@CategoryId, @Name, @StockQuantity, @Price, @ExpiryDate);
             SELECT CAST(SCOPE_IDENTITY() as int);";
-                return await connection.QuerySingleAsync<int>(sql, medicine);
-            }
+            return await connection.QuerySingleAsync<int>(sql, medicine);
         }
 
         public async Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction)
@@ -55,11 +49,9 @@ namespace PharmaLink.API.Repositories
             else
             {
                 // ELSE open a new independent connection.
-                using (var connection = new SqlConnection(_connectionString))
-                {
-                    int rows = await connection.ExecuteAsync(sql, parameters);
-                    return rows > 0;
-                }
+                using var connection = new SqlConnection(_connectionString);
+                int rows = await connection.ExecuteAsync(sql, parameters);
+                return rows > 0;
             }
         }
     }
