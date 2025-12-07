@@ -10,5 +10,6 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<IEnumerable<User>> GetAllAsync();
         Task<bool> DeleteAsync(int id); 
         Task<bool> UpdateAsync(User user); // For changing roles/passwords
+        Task<bool> UpdateProfileImageAsync(int userId, string imagePath);
     }
 }

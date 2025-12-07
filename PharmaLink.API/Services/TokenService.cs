@@ -25,7 +25,7 @@ namespace PharmaLink.API.Services
             var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
 
             var tokenDescriptor = new SecurityTokenDescriptor
-            {
+            {   
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(7), // Timeout
                 SigningCredentials = creds

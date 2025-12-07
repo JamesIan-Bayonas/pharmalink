@@ -39,19 +39,19 @@
         {
             using var connection = new SqlConnection(_connectionString);
             string sql = @"
-                INSERT INTO Users (Username, PasswordHash, Role) 
-                VALUES (@Username, @PasswordHash, @Role)
+                INSERT INTO Users (Username, PasswordHash, Role, ProfileImagePath) 
+                VALUES (@Username, @PasswordHash, @Role, @ProfileImagePath)
                 SELECT CAST(SCOPE_IDENTITY() as int);";
             return await connection.QuerySingleAsync<int>(sql, user);
         }
-
         public async Task<bool> UpdateAsync(User user)
         {
             using var connection = new SqlConnection(_connectionString);
             string sql = @"
                 UPDATE Users 
                 SET UserName = @UserName, 
-                    PasswordHash = @PasswordHash
+                PasswordHash = @PasswordHash
+                ProfileImagePath = @ProfileImagePath
                 WHERE Id = @Id";
             var rows = await connection.ExecuteAsync(sql, user);
             return rows > 0;
@@ -62,6 +62,13 @@
             using var connection = new SqlConnection(_connectionString);
             string sql = "DELETE FROM Users WHERE Id = @Id";
             var rows = await connection.ExecuteAsync(sql, new { Id = id });
+            return rows > 0;
+        }
+        public async Task<bool> UpdateProfileImageAsync(int userId, string imagePath)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string sql = "UPDATE Users SET ProfileImagePath = @Path WHERE Id = @Id";
+            var rows = await connection.ExecuteAsync(sql, new { Path = imagePath, Id = userId });
             return rows > 0;
         }
     }

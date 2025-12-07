@@ -38,7 +38,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            Array.Empty<string>()
+            new string[] {}
         }
     });
 });
@@ -89,6 +89,8 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
 
 // IMPORTANT: Authentication must come BEFORE Authorization
 app.UseAuthentication();
