@@ -8,17 +8,11 @@
     using System.Data;
 
     // 1. User Repository (Fully Implemented)
-    public class UserRepository : IUserRepository
+    public class UserRepository(IConfiguration configuration) : IUserRepository
     {
         
-        private readonly string _connectionString;
-
-        public UserRepository(IConfiguration configuration)
-        {
-
-            _connectionString = configuration.GetConnectionString("DefaultConnection")
+        private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection string not found");
-        }
 
         public async Task<User?> GetByIdAsync(int id)
         {

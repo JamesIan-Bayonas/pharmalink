@@ -1,21 +1,14 @@
 ﻿using PharmaLink.API.DTOs.Sales;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.RepositoryInterface;
+using PharmaLink.API.Interfaces.ServiceInterface;
 //using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
 {
-    public class SaleService :  ISaleService
+    public class SaleService(ISaleRepository saleRepo, IMedicineRepository medicineRepo) :  ISaleService
     {
-        private readonly ISaleRepository _saleRepository;
-        private readonly IMedicineRepository _medicineRepository; // Needed to check prices/stock
-
-        public SaleService(ISaleRepository saleRepo, IMedicineRepository medicineRepo)
-        {
-            _saleRepository = saleRepo;     
-            _medicineRepository = medicineRepo;
-        }
-
         public async Task<int> ProcessSaleAsync(int userId, CreateSaleRequestDto request)
         {
             decimal totalAmount = 0;
@@ -24,23 +17,24 @@ namespace PharmaLink.API.Services
             foreach (var itemDto in request.Items)
             {
                 // Validation checking for existing Stock
-                var medicine = await _medicineRepository.GetByIdAsync(itemDto.MedicineId);
-                if (medicine == null)
-                    throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
-
-                if (medicine.StockQuantity < itemDto.Quantity)
-                    throw new Exception($"Insufficient stock for {medicine.Name}. Available: {medicine.StockQuantity}");
-
-                // Calculate Costs
-                totalAmount += medicine.Price * itemDto.Quantity;
-
-             
-                saleItemsEntities.Add(new SaleItem
+                var medicine = await medicineRepo.GetByIdAsync(itemDto.MedicineId);
+                if (medicine != null)
                 {
-                    MedicineId = itemDto.MedicineId,
-                    Quantity = itemDto.Quantity,
-                    UnitPrice = medicine.Price
-                });
+                    if (medicine.StockQuantity < itemDto.Quantity)
+                        throw new Exception($"Insufficient stock for {medicine.Name}. Available: {medicine.StockQuantity}");
+
+                    totalAmount += medicine.Price * itemDto.Quantity;
+
+
+                    saleItemsEntities.Add(new SaleItem
+                    {
+                        MedicineId = itemDto.MedicineId,
+                        Quantity = itemDto.Quantity,
+                        UnitPrice = medicine.Price
+                    });
+                }
+                else
+                    throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
             }
 
             // Create Sale Header Entity
@@ -52,16 +46,16 @@ namespace PharmaLink.API.Services
             };
 
             // Execute Transaction
-            return await _saleRepository.CreateSaleTransactionAsync(saleEntity, saleItemsEntities);
+            return await saleRepo.CreateSaleTransactionAsync(saleEntity, saleItemsEntities);
         }
         public async Task<object?> GetSaleByIdAsync(int id)
         {
             // Fetch Header
-            var sale = await _saleRepository.GetByIdAsync(id);
+            var sale = await saleRepo.GetByIdAsync(id);
             if (sale == null) return null;
 
             // Fetch Details (Calling the method you asked about!)
-            var items = await _saleRepository.GetItemsBySaleIdAsync(id);
+            var items = await saleRepo.GetItemsBySaleIdAsync(id);
 
             // Map to DTO
             var response = new SaleResponseDto
@@ -76,7 +70,7 @@ namespace PharmaLink.API.Services
             // Map Items
             foreach (var item in items)
             {
-                var medicine = await _medicineRepository.GetByIdAsync(item.MedicineId);
+                var medicine = await medicineRepo.GetByIdAsync(item.MedicineId);
                 
                 response.Items.Add(new SaleItemResponseDto
                 {
@@ -93,12 +87,12 @@ namespace PharmaLink.API.Services
 
         public async Task<IEnumerable<object>> GetAllSalesAsync()
         {
-            var sales = await _saleRepository.GetAllAsync();
+            var sales = await saleRepo.GetAllAsync();
             var result = new List<object>();
 
             foreach (var sale in sales)
             {
-                var items = await _saleRepository.GetItemsBySaleIdAsync(sale.Id);
+                var items = await saleRepo.GetItemsBySaleIdAsync(sale.Id);
                 
                 var response = new SaleResponseDto
                 {
@@ -111,7 +105,7 @@ namespace PharmaLink.API.Services
 
                 foreach (var item in items)
                 {
-                    var medicine = await _medicineRepository.GetByIdAsync(item.MedicineId);
+                    var medicine = await medicineRepo.GetByIdAsync(item.MedicineId);
                     
                     response.Items.Add(new SaleItemResponseDto
                     {

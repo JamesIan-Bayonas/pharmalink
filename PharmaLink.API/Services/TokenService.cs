@@ -7,26 +7,19 @@ using System.Text;
 
 namespace PharmaLink.API.Services
 {
-    public class TokenService : ITokenService
+    public class TokenService(IConfiguration configuration) : ITokenService
     {
-        private readonly IConfiguration _configuration;
-
-        public TokenService(IConfiguration configuration)
-        {
-            _configuration = configuration;
-        }
-
         public string GenerateToken(User user)
         {
-            var jwtKey = _configuration["JwtSettings:Key"] ?? "this_is_a_very_long_super_secret_key_for_pharmalink_security";
+            var jwtKey = configuration["JwtSettings:Key"] ?? "this_is_a_very_long_super_secret_key_for_pharmalink_security";
             var key = Encoding.UTF8.GetBytes(jwtKey);
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim("uid", user.Id.ToString()),
-                new Claim(ClaimTypes.Role, user.Role) // Add Role claim!
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, user.UserName),
+                new("uid", user.Id.ToString()),
+                new(ClaimTypes.Role, user.Role) // Add Role claim!
             };
                 
             var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);

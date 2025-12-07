@@ -6,14 +6,9 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
-    public class CategoryService : ICategoryService
+    public class CategoryService(ICategoryRepository categoryRepository) : ICategoryService
     {
-        private readonly ICategoryRepository _categoryRepository;
-
-        public CategoryService(ICategoryRepository categoryRepository)
-        {
-            _categoryRepository = categoryRepository;
-        }
+        private readonly ICategoryRepository _categoryRepository = categoryRepository;
 
         public async Task<int> CreateCategoryAsync(CreateCategoryDto request)
         {

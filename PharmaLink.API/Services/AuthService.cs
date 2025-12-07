@@ -12,21 +12,12 @@ using System.Text;
 
 namespace PharmaLink.API.Services
 {
-    public class AuthService : IAuthService
+    public class AuthService(IUserRepository userRepository, ITokenService tokenService) : IAuthService
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ITokenService _tokenService;
-
-        public AuthService(IUserRepository userRepository, ITokenService tokenService)
-        {
-            _userRepository = userRepository;
-            _tokenService = tokenService;
-        }
-
         public async Task<string> RegisterAsync(User user, string password,string role)
         {
             // Checks if user exist's
-            var existingUser = await _userRepository.GetByUsernameAsync(user.UserName);
+            var existingUser = await userRepository.GetByUsernameAsync(user.UserName);
             if (existingUser != null)
                 throw new Exception("Username already exists.");
 
@@ -37,14 +28,14 @@ namespace PharmaLink.API.Services
             role = string.IsNullOrEmpty(role) ? "User" : role;
 
             user.Role = role;
-            await _userRepository.CreateAsync(user);
+            await userRepository.CreateAsync(user);
             return "User registered successfully.";
         }
 
         public async Task<string> LoginAsync(string username, string password)
         {
             // Get User
-            var user = await _userRepository.GetByUsernameAsync(username);
+            var user = await userRepository.GetByUsernameAsync(username);
             if (user == null) return null;
 
             // Implements BCrypt.Net.BCrypt
@@ -52,7 +43,7 @@ namespace PharmaLink.API.Services
                 return null;
 
             // Generate JWT Token
-            return _tokenService.GenerateToken(user);
+            return tokenService.GenerateToken(user);
         }
 
        

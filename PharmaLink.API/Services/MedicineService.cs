@@ -6,18 +6,11 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
-    public class MedicineService : IMedicineService
+    public class MedicineService(IMedicineRepository medicineRepository) : IMedicineService
     {
-        private readonly IMedicineRepository _medicineRepository;
-
-        public MedicineService(IMedicineRepository medicineRepository)
-        {
-            _medicineRepository = medicineRepository;
-        }
-
         public async Task<IEnumerable<MedicineResponseDto>> GetAllMedicinesAsync()
         {
-            var medicines = await _medicineRepository.GetAllAsync();
+            var medicines = await medicineRepository.GetAllAsync();
 
             // Logic: Map Entity to DTO here
             return medicines.Select(m => new MedicineResponseDto
@@ -33,7 +26,7 @@ namespace PharmaLink.API.Services
 
         public async Task<MedicineResponseDto?> GetMedicineByIdAsync(int id)
         {
-            var medicine = await _medicineRepository.GetByIdAsync(id);
+            var medicine = await medicineRepository.GetByIdAsync(id);
             if (medicine == null) return null;
 
             return new MedicineResponseDto
@@ -60,7 +53,7 @@ namespace PharmaLink.API.Services
                 ExpiryDate = request.ExpiryDate
             };  
 
-            return await _medicineRepository.CreateAsync(newMedicine);
+            return await medicineRepository.CreateAsync(newMedicine);
         }
     }
 }
