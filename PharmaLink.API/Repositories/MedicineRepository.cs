@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
 
 public class MedicineRepository : IMedicineRepository
@@ -10,7 +10,8 @@ public class MedicineRepository : IMedicineRepository
 
     public MedicineRepository(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection string not found");
     }
 
     public async Task<Medicine?> GetByIdAsync(int id)
@@ -43,7 +44,7 @@ public class MedicineRepository : IMedicineRepository
         }
     }
 
-    public async Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction = null)
+    public async Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction)
     {
         string sql = "UPDATE Medicines SET StockQuantity = StockQuantity - @Quantity WHERE Id = @Id";
         var parameters = new { Quantity = quantityDeducted, Id = id };
@@ -51,7 +52,7 @@ public class MedicineRepository : IMedicineRepository
         // IF a transaction is passed (like from SaleService), use it.
         if (transaction != null)
         {
-            int rows = await transaction.Connection.ExecuteAsync(sql, parameters, transaction);
+            int rows = await transaction.Connection!.ExecuteAsync(sql, parameters, transaction);
             return rows > 0;
         }
         else

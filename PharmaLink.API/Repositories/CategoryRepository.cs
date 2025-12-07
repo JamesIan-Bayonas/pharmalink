@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
 
 namespace PharmaLink.API.Repositories
@@ -12,7 +12,8 @@ namespace PharmaLink.API.Repositories
 
         public CategoryRepository(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection string not found");
         }
 
         public async Task<int> CreateAsync(Category category)

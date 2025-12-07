@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
+using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
 
 public class SaleRepository : ISaleRepository
@@ -10,7 +10,8 @@ public class SaleRepository : ISaleRepository
 
     public SaleRepository(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection string not found");
     }
 
     // Required by ISaleRepository

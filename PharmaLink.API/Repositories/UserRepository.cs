@@ -3,7 +3,7 @@
     using Dapper;
     using Microsoft.Data.SqlClient;
     using PharmaLink.API.Entities;
-    using PharmaLink.API.Interfaces;
+    using PharmaLink.API.Interfaces.RepositoryInterface;
     using System.ComponentModel.DataAnnotations;
     using System.Data;
 
@@ -15,8 +15,9 @@
 
         public UserRepository(IConfiguration configuration)
         {
-               
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
+
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection string not found");
         }
 
         public async Task<User?> GetByIdAsync(int id)
@@ -28,7 +29,7 @@
             }
         }
 
-        public async Task<User?> GetByUsernameAsync(string username)
+        public async Task<User> GetByUsernameAsync(string username)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
