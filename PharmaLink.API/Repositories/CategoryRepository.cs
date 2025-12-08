@@ -62,5 +62,17 @@ namespace PharmaLink.API.Repositories
                 return rows > 0;
             }
         }
+
+        public async Task<bool> UpdateAsync(Category category)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string sql = @"
+                    UPDATE Categories 
+                    SET Name = @Name 
+                    WHERE Id = @Id";
+
+            var rows = await connection.ExecuteAsync(sql, category);
+            return rows > 0;
+        }
     }
 }

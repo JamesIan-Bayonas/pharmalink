@@ -33,5 +33,14 @@ namespace PharmaLink.API.Services
         {
             return await _categoryRepository.DeleteAsync(id);
         }
+        public async Task<bool> UpdateCategoryAsync(int id, UpdateCategoryDto request)
+        {
+            var existingCategory = await _categoryRepository.GetByIdAsync(id);
+            if (existingCategory == null) return false;
+
+            existingCategory.Name = request.Name;
+
+            return await _categoryRepository.UpdateAsync(existingCategory);
+        }
     }
 }

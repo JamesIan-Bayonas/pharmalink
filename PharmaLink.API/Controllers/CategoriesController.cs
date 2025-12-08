@@ -45,6 +45,23 @@ namespace PharmaLink.API.Controllers
             }
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] UpdateCategoryDto request)
+        {
+            try
+            {
+                bool success = await _categoryService.UpdateCategoryAsync(id, request);
+                if (!success)
+                    return NotFound(new { message = "Category not found" });
+
+                return Ok(new { message = "Category updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {

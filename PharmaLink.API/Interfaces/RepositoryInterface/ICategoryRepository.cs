@@ -8,5 +8,6 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<IEnumerable<Category>> GetAllAsync();
         Task<Category?> GetByIdAsync(int id);
         Task<bool> DeleteAsync(int id);
+        Task<bool> UpdateAsync(Category category);
     }
 }
