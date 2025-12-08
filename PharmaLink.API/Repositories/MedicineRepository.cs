@@ -54,5 +54,29 @@ namespace PharmaLink.API.Repositories
                 return rows > 0;
             }
         }
+        public async Task<bool> UpdateAsync(Medicine medicine)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string sql = @"
+                UPDATE Medicines 
+                SET Name = @Name, 
+                    CategoryId = @CategoryId, 
+                    StockQuantity = @StockQuantity, 
+                    Price = @Price, 
+                    ExpiryDate = @ExpiryDate
+                WHERE Id = @Id";
+
+            var rows = await connection.ExecuteAsync(sql, medicine);
+            return rows > 0;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            string sql = "DELETE FROM Medicines WHERE Id = @Id";
+
+            var rows = await connection.ExecuteAsync(sql, new { Id = id });
+            return rows > 0;
+        }
     }
 }

@@ -24,7 +24,7 @@ namespace PharmaLink.API.Controllers
         {
             try
             {
-                // 1. Map DTO to Entity (The Manual Way)
+                // Map DTO to Entity (The Manual Way)
                 var newMedicine = new Medicine
                 {
                     Name = request.Name,
@@ -34,10 +34,10 @@ namespace PharmaLink.API.Controllers
                     ExpiryDate = request.ExpiryDate
                 };
 
-                // 2. Save to Database
+                // Save to Database
                 int newId = await _medicineRepository.CreateAsync(newMedicine);
 
-                // 3. Return 201 Created
+                // Return 201 Created
                 // We return the ID so the frontend knows what the new Item ID is.
                 return Created("", new { id = newId, message = "Medicine added successfully" });
             }
@@ -123,6 +123,56 @@ namespace PharmaLink.API.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // PUT: api/Medicines/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateMedicine(int id, [FromBody] UpdateMedicineDto request)
+        {
+            try
+            {
+                // Check if it exists (Optional, but good practice)
+                var existingMedicine = await _medicineRepository.GetByIdAsync(id);
+                if (existingMedicine == null)
+                    return NotFound(new { message = "Medicine not found" });
+
+                // Map DTO -> Entity
+                // We preserve the ID from the URL, but update everything else
+                existingMedicine.Name = request.Name;
+                existingMedicine.CategoryId = request.CategoryId;
+                existingMedicine.StockQuantity = request.StockQuantity;
+                existingMedicine.Price = request.Price;
+                existingMedicine.ExpiryDate = request.ExpiryDate;
+
+                // Save to DB
+                bool success = await _medicineRepository.UpdateAsync(existingMedicine);
+
+                if (!success)
+                    return BadRequest(new { message = "Failed to update medicine" });
+
+                return Ok(new { message = "Medicine updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        // DELETE: api/Medicines/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMedicine(int id)
+        {
+            try
+            {
+                bool success = await _medicineRepository.DeleteAsync(id);
+                if (!success)
+                    return NotFound(new { message = "Medicine not found" });
+
+                return Ok(new { message = "Medicine deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Cannot delete medicine: " + ex.Message });
             }
         }
     }
