@@ -37,11 +37,30 @@ namespace PharmaLink.API.Repositories
 
         public async Task<bool> DeleteAsync(int id)
         {
-            using var connection = new SqlConnection(_connectionString);
-            string sql = "DELETE FROM Categories WHERE Id = @Id";
-            var rows = await connection.ExecuteAsync(sql, new { Id = id });
-            return rows > 0;
-         
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+
+                string deleteSql = "DELETE FROM Categories WHERE Id = @Id";
+                var rows = await connection.ExecuteAsync(deleteSql, new { Id =   id });
+
+                if (rows > 0)
+                {
+                    // We count how many rows are left.
+                    string countSql = "SELECT COUNT(*) FROM Categories";
+                    int remainingRows = await connection.ExecuteScalarAsync<int>(countSql);
+
+                    // IF EMPTY: Reset the Identity Counter automatically
+                    if (remainingRows == 0)
+                    {
+                        // Command's SQL Server: "The next ID should start from 1"
+                        await connection.ExecuteAsync("DBCC CHECKIDENT ('Categories', RESEED, 0)");
+                    }
+                }
+
+                return rows > 0;
+            }
         }
     }
 }

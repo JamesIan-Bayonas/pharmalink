@@ -35,7 +35,7 @@
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+            
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
@@ -44,6 +44,74 @@
                 return Unauthorized(new { message = "Invalid username or password" });
 
             return Ok(new { token = token });
+        }
+
+        // ... Existing Register and Login methods ...
+
+        // PUT: api/Auth/update
+        [HttpPut("update")]
+        [Authorize] // <--- User MUST be logged in to update their own account
+        public async Task<IActionResult> UpdateCredentials([FromBody] UserUpdateDto request)
+        {
+            try
+            {
+                // 1. Identify WHO is making the request (from the Token)
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+                if (userIdClaim == null) return Unauthorized();
+
+                int userId = int.Parse(userIdClaim.Value);
+
+                // 2. Call Service
+                bool success = await _authService.UpdateUserAsync(userId, request);
+
+                if (!success) return BadRequest(new { message = "Update failed" });
+
+                return Ok(new { message = "Credentials updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        // DELETE: api/Auth/delete
+        [HttpDelete("delete")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            try
+            {
+                // 1. Identify WHO is making the request
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+                if (userIdClaim == null) return Unauthorized();
+
+                int userId = int.Parse(userIdClaim.Value);
+
+                // 2. Call Service
+                bool success = await _authService.DeleteUserAsync(userId);
+
+                if (!success) return NotFound(new { message = "User not found" });
+
+                return Ok(new { message = "Account deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        [HttpGet("users")]
+        [Authorize(Roles = "Admin")] // <--- CRITICAL: Only Admins can see the user list!
+        public async Task<IActionResult> GetAllUsers()
+        {
+            try
+            {
+                var users = await _authService.GetAllUsersAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

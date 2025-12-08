@@ -13,3 +13,4 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<bool> UpdateProfileImageAsync(int userId, string imagePath);
     }
 }
+    

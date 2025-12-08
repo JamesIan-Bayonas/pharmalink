@@ -50,7 +50,7 @@
             string sql = @"
                 UPDATE Users 
                 SET UserName = @UserName, 
-                PasswordHash = @PasswordHash
+                PasswordHash = @PasswordHash,
                 ProfileImagePath = @ProfileImagePath
                 WHERE Id = @Id";
             var rows = await connection.ExecuteAsync(sql, user);

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
@@ -92,7 +91,7 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
-// IMPORTANT: Authentication must come BEFORE Authorization
+// Authentication must come BEFORE Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 

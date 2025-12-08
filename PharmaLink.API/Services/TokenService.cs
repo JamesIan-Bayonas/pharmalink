@@ -19,7 +19,7 @@ namespace PharmaLink.API.Services
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Name, user.UserName),
                 new("uid", user.Id.ToString()),
-                new(ClaimTypes.Role, user.Role) // Add Role claim!
+                new(ClaimTypes.Role, user.Role) // Add Role claim!  
             };
                 
             var creds = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature);
