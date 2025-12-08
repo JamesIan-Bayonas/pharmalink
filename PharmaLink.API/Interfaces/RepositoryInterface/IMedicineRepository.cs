@@ -8,7 +8,7 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<Medicine?> GetByIdAsync(int id);
         Task<IEnumerable<Medicine>> GetAllAsync();
         Task<int> CreateAsync(Medicine medicine);
-        Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction = null!);
+        Task<bool> UpdateStockAsync(int id, int quantityDeducted, IDbTransaction transaction = null);
         Task<bool> UpdateAsync(Medicine medicine);
         Task<bool> DeleteAsync(int id);
     }

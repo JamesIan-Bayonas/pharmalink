@@ -9,5 +9,7 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<Sale?> GetByIdAsync(int id);
         Task<IEnumerable<Sale>> GetAllAsync();
         Task<IEnumerable<SaleItem>> GetItemsBySaleIdAsync(int saleId);
+        Task<bool> DeleteSaleTransactionAsync(int saleId);
+        Task<bool> UpdateSaleTransactionAsync(int saleId, Sale saleHeader, List<SaleItem> newItems);
     }       
 }

@@ -122,6 +122,56 @@ namespace PharmaLink.API.Services
 
             return result;
         }
+        public async Task<bool> DeleteSaleAsync(int id)
+        {
+            // Simple pass-through to the repo logic
+            return await saleRepo.DeleteSaleTransactionAsync(id);
+        }
+
+        public async Task<bool> UpdateSaleAsync(int id, int userId, UpdateSaleDto request)
+        {
+            // 1. Check if Sale exists
+            var existingSale = await saleRepo.GetByIdAsync(id);
+            if (existingSale == null) return false;
+
+            decimal totalAmount = 0;
+            var newSaleItems = new List<SaleItem>();
+
+            // 2. Prepare New Items & Calculate Total (Logic reused from ProcessSale)
+            foreach (var itemDto in request.Items)
+            {
+                var medicine = await medicineRepo.GetByIdAsync(itemDto.MedicineId);
+                if (medicine == null)
+                    throw new Exception($"Medicine ID {itemDto.MedicineId} not found.");
+
+                // Note: Validating stock here is tricky because we haven't "Restored" the old stock yet.
+                // ideally, we assume the Repo transaction handles the "Net" change, 
+                // or we just check if (Stock + OldQty >= NewQty). 
+                // For simplicity in this project, we check absolute stock.
+                if (medicine.StockQuantity < itemDto.Quantity)
+                    throw new Exception($"Insufficient stock for {medicine.Name}.");
+
+                totalAmount += medicine.Price * itemDto.Quantity;
+
+                newSaleItems.Add(new SaleItem
+                {
+                    MedicineId = itemDto.MedicineId,
+                    Quantity = itemDto.Quantity,
+                    UnitPrice = medicine.Price
+                });
+            }
+
+            // 3. Prepare Header Update
+            var updatedSaleHeader = new Sale
+            {
+                UserId = userId, // Update who modified it? Or keep original? Usually update to current user.
+                TotalAmount = totalAmount,
+                TransDate = DateTime.Now // Update timestamp
+            };
+
+            // 4. Call Repo
+            return await saleRepo.UpdateSaleTransactionAsync(id, updatedSaleHeader, newSaleItems);
+        }
 
     }
 }

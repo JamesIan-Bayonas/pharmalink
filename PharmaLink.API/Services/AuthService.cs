@@ -1,17 +1,10 @@
 ﻿// REMOVE THIS LINE: using BCrypt.Net; 
 // We don't need it if we use the full name below.
-
-using Microsoft.IdentityModel.Tokens;
 using PharmaLink.API.DTOs.Auth;
 using PharmaLink.API.DTOs.Users;
 using PharmaLink.API.Entities;
-using PharmaLink.API.Interfaces;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
-using PharmaLink.API.Repositories;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace PharmaLink.API.Services
 {
@@ -72,17 +65,14 @@ namespace PharmaLink.API.Services
 
         public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
         {
-            // 1. Get raw entities from Repository
+         
             var users = await userRepository.GetAllAsync();
-
-            // 2. Map Entity -> DTO (Manual Mapping)
-            // We strictly select ONLY the fields we want to show.
             return users.Select(u => new UserResponseDto
             {
                 Id = u.Id,
                 UserName = u.UserName,
                 Role = u.Role,
-                ProfileImagePath = u.ProfileImagePath // Include the image path we added earlier!
+                ProfileImagePath = u.ProfileImagePath
             });
         }
     }

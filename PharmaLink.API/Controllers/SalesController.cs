@@ -63,5 +63,42 @@ namespace PharmaLink.API.Controllers
             }
         }
 
+        // PUT: api/Sales/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateSale(int id, [FromBody] UpdateSaleDto request)
+        {
+            // Get Current User ID
+            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+            if (userIdClaim == null) return Unauthorized();
+            int userId = int.Parse(userIdClaim.Value);
+
+            try
+            {
+                bool success = await _saleService.UpdateSaleAsync(id, userId, request);
+                if (!success) return NotFound(new { message = "Sale not found" });
+
+                return Ok(new { message = "Sale updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        // DELETE: api/Sales/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteSale(int id)
+        {
+            try
+            {
+                bool success = await _saleService.DeleteSaleAsync(id);
+                if (!success) return NotFound(new { message = "Sale not found" });
+
+                return Ok(new { message = "Sale deleted and stock restored successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

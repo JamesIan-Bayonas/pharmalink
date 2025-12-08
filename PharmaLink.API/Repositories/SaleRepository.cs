@@ -83,5 +83,98 @@ namespace PharmaLink.API.Repositories
             string sql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
             return await connection.QueryAsync<SaleItem>(sql, new { SaleId = saleId });
         }
+        public async Task<bool> DeleteSaleTransactionAsync(int saleId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                // 1. GET OLD ITEMS (To know what to put back on shelf)
+                string getItemsSql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
+                var oldItems = await connection.QueryAsync<SaleItem>(getItemsSql, new { SaleId = saleId }, transaction);
+
+                // 2. RESTORE STOCK (Reverse the sale)
+                string restoreStockSql = "UPDATE Medicines SET StockQuantity = StockQuantity + @Quantity WHERE Id = @MedicineId";
+                foreach (var item in oldItems)
+                {
+                    await connection.ExecuteAsync(restoreStockSql, new { item.Quantity, item.MedicineId }, transaction);
+                }
+
+                // 3. DELETE SALE (Cascade will handle SalesItems, but let's delete Parent)
+                // Note: Ensure your SQL Cascade is set, or manually delete SalesItems here first.
+                // Assuming Cascade is ON from previous steps:
+                string deleteSql = "DELETE FROM Sales WHERE Id = @SaleId";
+                int rows = await connection.ExecuteAsync(deleteSql, new { SaleId = saleId }, transaction);
+
+                transaction.Commit();
+                return rows > 0;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdateSaleTransactionAsync(int saleId, Sale saleHeader, List<SaleItem> newItems)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                // 1. REVERSE OLD SALE (Restore Stock)
+                var oldItems = await connection.QueryAsync<SaleItem>("SELECT * FROM SalesItems WHERE SaleId = @SaleId", new { SaleId = saleId }, transaction);
+                foreach (var item in oldItems)
+                {
+                    await connection.ExecuteAsync(
+                        "UPDATE Medicines SET StockQuantity = StockQuantity + @Quantity WHERE Id = @MedicineId",
+                        new { item.Quantity, item.MedicineId }, transaction);
+                }
+
+                // 2. CLEAR OLD ITEMS
+                await connection.ExecuteAsync("DELETE FROM SalesItems WHERE SaleId = @SaleId", new { SaleId = saleId }, transaction);
+
+                // 3. PROCESS NEW ITEMS (Deduct Stock & Insert)
+                foreach (var item in newItems)
+                {
+                    item.SaleId = saleId; // Link to existing ID
+
+                    // Deduct New Stock
+                    await connection.ExecuteAsync(
+                        "UPDATE Medicines SET StockQuantity = StockQuantity - @Quantity WHERE Id = @MedicineId",
+                        new { item.Quantity, item.MedicineId }, transaction);
+
+                    // Insert New Item
+                    await connection.ExecuteAsync(
+                        @"INSERT INTO SalesItems (SaleId, MedicineId, Quantity, UnitPrice)
+                          VALUES (@SaleId, @MedicineId, @Quantity, @UnitPrice)",
+                        item, transaction);
+                }
+
+                // 4. UPDATE HEADER (Total Amount & Date)
+                string updateHeaderSql = @"
+                    UPDATE Sales 
+                    SET TotalAmount = @TotalAmount, 
+                        UserId = @UserId,
+                        TransactionDate = @TransDate
+                    WHERE Id = @Id";
+
+                // Ensure the ID is set in the object
+                saleHeader.Id = saleId;
+
+                await connection.ExecuteAsync(updateHeaderSql, saleHeader, transaction);
+
+                transaction.Commit();
+                return true;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
     }
 }

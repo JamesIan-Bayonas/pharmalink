@@ -46,22 +46,34 @@
             return Ok(new { token = token });
         }
 
-        // ... Existing Register and Login methods ...
+        [HttpGet("users")]
+        [Authorize(Roles = "Admin")] // <--- CRITICAL: Only Admins can see the user list!
+        public async Task<IActionResult> GetAllUsers()
+        {
+            try
+            {
+                var users = await _authService.GetAllUsersAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
-        // PUT: api/Auth/update
         [HttpPut("update")]
-        [Authorize] // <--- User MUST be logged in to update their own account
+        [Authorize]
         public async Task<IActionResult> UpdateCredentials([FromBody] UserUpdateDto request)
         {
             try
             {
-                // 1. Identify WHO is making the request (from the Token)
+                // Identify WHO is making the request (from the Token)
                 var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
                 if (userIdClaim == null) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // 2. Call Service
+                // Call Service
                 bool success = await _authService.UpdateUserAsync(userId, request);
 
                 if (!success) return BadRequest(new { message = "Update failed" });
@@ -81,13 +93,13 @@
         {
             try
             {
-                // 1. Identify WHO is making the request
+                // Identify WHO is making the request
                 var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
                 if (userIdClaim == null) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // 2. Call Service
+                // Call Service
                 bool success = await _authService.DeleteUserAsync(userId);
 
                 if (!success) return NotFound(new { message = "User not found" });
@@ -99,19 +111,6 @@
                 return BadRequest(new { message = ex.Message });
             }
         }
-        [HttpGet("users")]
-        [Authorize(Roles = "Admin")] // <--- CRITICAL: Only Admins can see the user list!
-        public async Task<IActionResult> GetAllUsers()
-        {
-            try
-            {
-                var users = await _authService.GetAllUsersAsync();
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+        
     }
 }
