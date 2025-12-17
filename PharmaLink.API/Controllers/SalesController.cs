@@ -1,20 +1,21 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PharmaLink.API.Attributes;
 using PharmaLink.API.DTOs.Sales;
-using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.ServiceInterface;
-using PharmaLink.API.Services;
 
 namespace PharmaLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize] // It needs a JWT Token
-    public class SalesController(ISaleService saleService) : ControllerBase 
+    [Authorize]
+    public class SalesController(ISaleService saleService) : ControllerBase
     {
         private readonly ISaleService _saleService = saleService;
 
-        [HttpPost()] 
+        // POST: Create a new Sale
+        [HttpPost()]
+        [Authorize(Roles = "Admin,Pharmacist")] // Pharmacist sells medicines that matches medicine's "id"
         public async Task<IActionResult> CreateSale([FromBody] CreateSaleRequestDto request)
         {
             // Extract UserId from the JWT Token claims
@@ -33,7 +34,9 @@ namespace PharmaLink.API.Controllers
             }
         }
 
+        // GET: get sale by ID
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Pharmacist")]
         public async Task<IActionResult> GetSaleById(int id)
         {
             try
@@ -48,8 +51,9 @@ namespace PharmaLink.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        // GET: get all sales
         [HttpGet]
+        [Authorize(Roles = "Admin,Pharmacist")]
         public async Task<IActionResult> GetAllSales()
         {
             try
@@ -65,6 +69,7 @@ namespace PharmaLink.API.Controllers
 
         // PUT: api/Sales/5
         [HttpPut("{id}")]
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to modify sales history. Report to your Administrator.")]
         public async Task<IActionResult> UpdateSale(int id, [FromBody] UpdateSaleDto request)
         {
             // Get Current User ID
@@ -84,8 +89,10 @@ namespace PharmaLink.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
         // DELETE: api/Sales/5
         [HttpDelete("{id}")]
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to modify sales history. Report to your Administrator.")]
         public async Task<IActionResult> DeleteSale(int id)
         {
             try

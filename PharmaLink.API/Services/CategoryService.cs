@@ -1,4 +1,5 @@
-﻿using PharmaLink.API.DTOs.Categories;
+﻿using AutoMapper;
+using PharmaLink.API.DTOs.Categories;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
 using PharmaLink.API.Interfaces.RepositoryInterface;
@@ -6,27 +7,20 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
-    public class CategoryService(ICategoryRepository categoryRepository) : ICategoryService
+    public class CategoryService(ICategoryRepository categoryRepository, IMapper mapper) : ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository = categoryRepository;
 
         public async Task<int> CreateCategoryAsync(CreateCategoryDto request)
         {
-            var newCategory = new Category
-            {
-                Name = request.Name
-            };
+            var newCategory = mapper.Map<Category>(request);
             return await _categoryRepository.CreateAsync(newCategory);
         }
 
         public async Task<IEnumerable<CategoryResponseDto>> GetAllCategoriesAsync()
         {
             var categories = await _categoryRepository.GetAllAsync();
-            return categories.Select(c => new CategoryResponseDto
-            {
-                Id = c.Id,
-                Name = c.Name
-            });
+            return mapper.Map<IEnumerable<CategoryResponseDto>>(categories);
         }
 
         public async Task<bool> DeleteCategoryAsync(int id)

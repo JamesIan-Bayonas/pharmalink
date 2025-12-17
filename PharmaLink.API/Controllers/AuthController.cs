@@ -1,32 +1,32 @@
-﻿namespace PharmaLink.API.Controllers
-{
-    using Microsoft.AspNetCore.Authorization;
-    using Microsoft.AspNetCore.Mvc;
-    using PharmaLink.API.DTOs.Auth;
-    using PharmaLink.API.Entities;
-    using PharmaLink.API.Interfaces.ServiceInterface;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using PharmaLink.API.Attributes;
+using PharmaLink.API.DTOs.Auth;
+using PharmaLink.API.Entities;
+using PharmaLink.API.Interfaces.ServiceInterface;
 
-    // 1. Auth Controller (New!)
+namespace PharmaLink.API.Controllers
+{
     [Route("api/[controller]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
-        /// <summary>
-        /// Handles authentication logic. See <see cref="AuthService"/> for implementation.
-        /// </summary>
         private readonly IAuthService _authService;
+        private readonly IMapper _mapper;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IMapper mapper)
         {
             _authService = authService;
+            _mapper = mapper;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] UserRegisterDto request) 
+        public async Task<IActionResult> Register([FromBody] UserRegisterDto request)
         {
             try
             {
-                var newUser = new User { UserName = request.UserName };
+                var newUser = _mapper.Map<User>(request);
                 var result = await _authService.RegisterAsync(newUser, request.Password, request.Role);
                 return Ok(new { message = result });
             }
@@ -35,7 +35,7 @@
                 return BadRequest(new { message = ex.Message });
             }
         }
-            
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto request)
         {
@@ -47,7 +47,7 @@
         }
 
         [HttpGet("users")]
-        [Authorize(Roles = "Admin")] // <--- CRITICAL: Only Admins can see the user list!
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to view user records. Report to your Administrator.")]
         public async Task<IActionResult> GetAllUsers()
         {
             try
@@ -67,13 +67,11 @@
         {
             try
             {
-                // Identify WHO is making the request (from the Token)
                 var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
                 if (userIdClaim == null) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // Call Service
                 bool success = await _authService.UpdateUserAsync(userId, request);
 
                 if (!success) return BadRequest(new { message = "Update failed" });
@@ -86,20 +84,17 @@
             }
         }
 
-        // DELETE: api/Auth/delete
         [HttpDelete("delete")]
         [Authorize]
         public async Task<IActionResult> DeleteAccount()
         {
             try
             {
-                // Identify WHO is making the request
                 var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
                 if (userIdClaim == null) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // Call Service
                 bool success = await _authService.DeleteUserAsync(userId);
 
                 if (!success) return NotFound(new { message = "User not found" });
@@ -111,6 +106,5 @@
                 return BadRequest(new { message = ex.Message });
             }
         }
-        
     }
 }

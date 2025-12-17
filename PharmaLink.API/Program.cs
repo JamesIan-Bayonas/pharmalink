@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Services to container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
 // Configure Swagger to allow JWT Input
 builder.Services.AddSwaggerGen(c =>

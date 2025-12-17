@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PharmaLink.API.Attributes;
 using PharmaLink.API.DTOs.Categories;
 using PharmaLink.API.Interfaces.ServiceInterface;
 
@@ -7,7 +8,7 @@ namespace PharmaLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Secure this so only logged-in users can manage categories
+    [Authorize]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
@@ -18,6 +19,7 @@ namespace PharmaLink.API.Controllers
         }
 
         [HttpPost]
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to create new categories. Report to your Administrator.")]
         public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto request)
         {
             try
@@ -25,13 +27,14 @@ namespace PharmaLink.API.Controllers
                 int id = await _categoryService.CreateCategoryAsync(request);
                 return Ok(new { id, message = "Category created successfully" });
             }
-            catch (Exception ex)    
+            catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Pharmacist")]
         public async Task<IActionResult> GetAllCategories()
         {
             try
@@ -46,6 +49,7 @@ namespace PharmaLink.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to modify category details. Report to your Administrator.")]
         public async Task<IActionResult> UpdateCategory(int id, [FromBody] UpdateCategoryDto request)
         {
             try
@@ -63,6 +67,7 @@ namespace PharmaLink.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [AdminGuard("ACCESS DENIED: You strictly do not have the privilege to delete categories. Report to your Administrator.")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try
