@@ -9,20 +9,27 @@ namespace PharmaLink.API.Services
 {
     public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService
     {
-        public async Task<string> RegisterAsync(User user, string password,string role)
+        public async Task<string> RegisterAsync(User user, string password, string role)
         {
-            // Checks if user exist's
+            // Check if user exists
             var existingUser = await userRepository.GetByUsernameAsync(user.UserName);
             if (existingUser != null) throw new Exception("Username already exists.");
 
-            // Use BCrypt.Net.BCrypt
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
             user.PasswordHash = passwordHash;
 
-            role = string.IsNullOrEmpty(role) ? "Pharmacist" : role;
+            if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                role = "Admin";
+            }
+            else
+            {
+                role = "Pharmacist";
+            }
 
-            user.Role = role; 
-            await userRepository.CreateAsync(user); return "User registered successfully.";
+            user.Role = role;
+            await userRepository.CreateAsync(user);
+            return "User registered successfully.";
         }
 
         public async Task<string> LoginAsync(string username, string password)
@@ -45,7 +52,6 @@ namespace PharmaLink.API.Services
 
             user.UserName = request.Username;
 
-            // Update Password (ONLY if provided)
             if (!string.IsNullOrEmpty(request.Password))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);

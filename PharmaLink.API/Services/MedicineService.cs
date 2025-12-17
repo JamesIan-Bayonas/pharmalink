@@ -10,7 +10,16 @@ namespace PharmaLink.API.Services
     {
         public async Task<IEnumerable<MedicineResponseDto>> GetAllMedicinesAsync()
         {
-            var medicines = await medicineRepository.GetAllAsync();
+            // FIX: Create default parameters to satisfy the new Interface requirement
+            // This gets the first 50 items by default for the Service layer
+            var defaultParams = new MedicineParams
+            {
+                PageNumber = 1,
+                PageSize = 50
+            };
+
+            // Use the Tuple destructuring feature
+            var (medicines, totalCount) = await medicineRepository.GetAllAsync(defaultParams);
 
             // Logic: Map Entity to DTO here
             return medicines.Select(m => new MedicineResponseDto
