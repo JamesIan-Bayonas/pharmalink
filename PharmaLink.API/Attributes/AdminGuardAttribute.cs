@@ -17,17 +17,17 @@ namespace PharmaLink.API.Attributes
         {
             var user = context.HttpContext.User;
 
-            // 1. Check if they are logged in at all
+            // Check if they are logged in at all
             if (!user.Identity.IsAuthenticated)
             {
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
-            // 2. Check if they are an Admin
+            // Check if they are an Admin
             if (!user.IsInRole("Admin"))
             {
-                // 3. If not, REJECT them immediately with your custom 403 message
+                // If not, REJECT them immediately with your custom 403 message
                 context.Result = new ObjectResult(new
                 {
                     message = _customMessage,

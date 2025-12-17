@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using PharmaLink.API.DTOs.Medicines;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
@@ -18,11 +19,60 @@ namespace PharmaLink.API.Repositories
             return await connection.QuerySingleOrDefaultAsync<Medicine>(sql, new { Id = id });
         }
 
-        public async Task<IEnumerable<Medicine>> GetAllAsync()
+        public async Task<(IEnumerable<Medicine>, int)> GetAllAsync(MedicineParams parameters)
         {
             using var connection = new SqlConnection(_connectionString);
-            string sql = "SELECT * FROM Medicines";
-            return await connection.QueryAsync<Medicine>(sql);
+
+            // 1. Start building the query
+            // We use "WHERE 1=1" trick so we can easily append "AND ..." later
+            var sqlBuilder = new System.Text.StringBuilder("SELECT * FROM Medicines WHERE 1=1 ");
+            var countBuilder = new System.Text.StringBuilder("SELECT COUNT(*) FROM Medicines WHERE 1=1 ");
+
+            // 2. Dynamic Filtering (Search)
+            // We use DynamicParameters to safely add values
+            var dbParams = new DynamicParameters();
+
+            if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            {
+                // Filter both the Data Query and the Count Query
+                sqlBuilder.Append(" AND Name LIKE @SearchTerm");
+                countBuilder.Append(" AND Name LIKE @SearchTerm");
+                dbParams.Add("SearchTerm", $"%{parameters.SearchTerm}%");
+            }
+
+            if (parameters.CategoryId.HasValue)
+            {
+                sqlBuilder.Append(" AND CategoryId = @CategoryId");
+                countBuilder.Append(" AND CategoryId = @CategoryId");
+                dbParams.Add("CategoryId", parameters.CategoryId.Value);
+            }
+
+            // 3. Dynamic Sorting
+            // We whitelist columns to prevent SQL Injection (Cannot use @Params for column names)
+            string sortQuery = parameters.SortBy?.ToLower() switch
+            {
+                "price" => "ORDER BY Price ASC",
+                "price_desc" => "ORDER BY Price DESC",
+                "expiry" => "ORDER BY ExpiryDate ASC",
+                "name_desc" => "ORDER BY Name DESC",
+                _ => "ORDER BY Name ASC" // Default Sort
+            };
+
+            sqlBuilder.Append($" {sortQuery}");
+
+            // 4. Pagination (OFFSET and FETCH)
+            sqlBuilder.Append(" OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
+            dbParams.Add("Offset", (parameters.PageNumber - 1) * parameters.PageSize);
+            dbParams.Add("PageSize", parameters.PageSize);
+
+            // 5. Execute Queries
+            // We run the Count query first to know the total items matching the filter
+            int totalCount = await connection.ExecuteScalarAsync<int>(countBuilder.ToString(), dbParams);
+
+            // Then we run the Data query to get the specific page of items
+            var items = await connection.QueryAsync<Medicine>(sqlBuilder.ToString(), dbParams);
+
+            return (items, totalCount);
         }
 
         public async Task<int> CreateAsync(Medicine medicine)

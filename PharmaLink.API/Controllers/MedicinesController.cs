@@ -40,19 +40,35 @@ namespace PharmaLink.API.Controllers
         }
 
         // GET: api/Medicines
+        // GET: api/Medicines?pageNumber=1&pageSize=10&searchTerm=bio
         [HttpGet]
         [Authorize(Roles = "Admin,Pharmacist")]
-        public async Task<IActionResult> GetAllMedicines()
+        // Add [FromQuery] to read parameters from the URL
+        public async Task<IActionResult> GetAllMedicines([FromQuery] MedicineParams parameters)
         {
             try
             {
-                var medicines = await _medicineRepository.GetAllAsync();
+                // Pass parameters to the repository
+                // The repo now returns a Tuple: (List of Items, Total Count)
+                var (medicines, totalCount) = await _medicineRepository.GetAllAsync(parameters);
 
-                // This converts the list of database rows into a clean JSON list
                 var medicineDtos = _mapper.Map<IEnumerable<MedicineResponseDto>>(medicines);
-                    
-                return Ok(medicineDtos);
-            }   
+
+                // Create a smart response with Metadata
+                var response = new
+                {
+                    Meta = new
+                    {
+                        TotalCount = totalCount,
+                        PageSize = parameters.PageSize,
+                        CurrentPage = parameters.PageNumber,
+                        TotalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize)
+                    },
+                    Data = medicineDtos
+                };
+
+                return Ok(response);
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
