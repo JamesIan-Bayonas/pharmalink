@@ -95,8 +95,9 @@ CREATE TABLE SalesItems (
     UnitPrice DECIMAL(18,2) NOT NULL
 );
 GO
-
-🚀 Setup Instructions
+```
+---
+##🚀 Setup Instructions
 Follow these steps to set up and run the project locally.
 
 Prerequisites
@@ -109,19 +110,23 @@ Visual Studio or VS Code
 Installation Steps
 1. Clone the Repository
 
-Bash
-
+```bash
 git clone [https://github.com/jamesian-bayonas/pharmalink.git](https://github.com/jamesian-bayonas/pharmalink.git)
 cd pharmalink
-2. Database Configuration
+```
+---
+
+##2. Database Configuration
 
 Open PharmaLink.API/appsettings.json.
 
 Update the ConnectionStrings:DefaultConnection to match your SQL Server instance:
 
-JSON
-
+```json
 "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PharmaLinkDB;Trusted_Connection=True;TrustServerCertificate=True;"
+```
+---
+
 3. Initialize Database
 
 Open SQL Server Management Studio (SSMS).
