@@ -57,7 +57,6 @@ GO
 USE PharmaLinkDB;
 GO
 
--- 1. Users Table
 CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserName NVARCHAR(100) NOT NULL UNIQUE,
@@ -66,13 +65,11 @@ CREATE TABLE Users (
     ProfileImagePath NVARCHAR(MAX) NULL
 );
 
--- 2. Categories Table
 CREATE TABLE Categories (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Name NVARCHAR(100) NOT NULL
 );
 
--- 3. Medicines Table
 CREATE TABLE Medicines (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     CategoryId INT NOT NULL FOREIGN KEY REFERENCES Categories(Id),
@@ -83,7 +80,6 @@ CREATE TABLE Medicines (
     ExpiryDate DATETIME NOT NULL
 );   
 
--- 4. Sales Table (Transaction Header)
 CREATE TABLE Sales (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL FOREIGN KEY REFERENCES Users(Id),
@@ -91,7 +87,6 @@ CREATE TABLE Sales (
     TransactionDate DATETIME NOT NULL DEFAULT GETDATE()
 );
 
--- 5. SalesItems Table (Transaction Details)
 CREATE TABLE SalesItems (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     SaleId INT NOT NULL FOREIGN KEY REFERENCES Sales(Id) ON DELETE CASCADE,
@@ -100,3 +95,50 @@ CREATE TABLE SalesItems (
     UnitPrice DECIMAL(18,2) NOT NULL
 );
 GO
+
+🚀 Setup Instructions
+Follow these steps to set up and run the project locally.
+
+Prerequisites
+.NET 8.0 SDK
+
+SQL Server (LocalDB or Express)
+
+Visual Studio or VS Code
+
+Installation Steps
+1. Clone the Repository
+
+Bash
+
+git clone [https://github.com/jamesian-bayonas/pharmalink.git](https://github.com/jamesian-bayonas/pharmalink.git)
+cd pharmalink
+2. Database Configuration
+
+Open PharmaLink.API/appsettings.json.
+
+Update the ConnectionStrings:DefaultConnection to match your SQL Server instance:
+
+JSON
+
+"DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PharmaLinkDB;Trusted_Connection=True;TrustServerCertificate=True;"
+3. Initialize Database
+
+Open SQL Server Management Studio (SSMS).
+
+Copy the SQL Creation Scripts provided in the section above.
+
+Execute the scripts to generate the database and required tables.
+
+4. Run the Application
+
+Bash
+
+cd PharmaLink.API
+dotnet restore
+dotnet run
+5. Access the API
+
+The API will start at https://localhost:5001 (or the port shown in your terminal).
+
+Visit Swagger UI to test the endpoints: https://localhost:5001/swagger/index.html
