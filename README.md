@@ -105,35 +105,35 @@ Establishing your intent: You want to convert your list of API endpoints into a 
 This project provides a comprehensive set of endpoints for managing the pharmacy system while also verifying who can access a certain endpoints:
 
 * **Authentication & Account Management:**
-* **POST `/api/Auth/register**`: Registers a new user account with a designated role(Public).
-* **POST `/api/Auth/login**`: Authenticates credentials and returns a secure JWT token(Public).
-* **GET `/api/Auth/users**`: Retrieves a list of all registered users (🔒 Admin Only).
-* **PUT `/api/Auth/update**`: Allows logged-in users to update their own credentials.
-* **DELETE `/api/Auth/delete**`: Allows users to permanently delete their own accounts.
+* **POST** `/api/Auth/register**`: Registers a new user account with a designated role(Public).
+* **POST** `/api/Auth/login**`: Authenticates credentials and returns a secure JWT token(Public).
+* **GET** `/api/Auth/users**`: Retrieves a list of all registered users (🔒 Admin Only).
+* **PUT** `/api/Auth/update**`: Allows logged-in users to update their own credentials.
+* **DELETE** `/api/Auth/delete**`: Allows users to permanently delete their own accounts.
 
 * **Medicine Inventory:**
-* **GET `/api/Medicines**`: Lists medicines with built-in support for **Pagination, Searching, and Sorting**(Pharmacist, Admin).
-* **GET `/api/Medicines/{id}**`: Retrieves comprehensive details for a specific medicine record(Pharmacist, Admin).
-* **POST `/api/Medicines**`: Adds a new medicine record to the inventory (🔒 Admin Only).
-* **PATCH `/api/Medicines/{id}**`: Dedicated endpoint for manual stock level adjustments (🔒 Admin Only).
-* **PATCH `/api/Medicines/{id}/stocks**`: Updates general medicine data including pricing and expiry (🔒 Admin Only).
-* **DELETE `/api/Medicines/{id}**`: Removes a medicine record from the system (🔒 Admin Only).
+* **GET** `/api/Medicines**`: Lists medicines with built-in support for **Pagination, Searching, and Sorting**(Pharmacist, Admin).
+* **GET** `/api/Medicines/{id}**`: Retrieves comprehensive details for a specific medicine record(Pharmacist, Admin).
+* **POST** `/api/Medicines**`: Adds a new medicine record to the inventory (🔒 Admin Only).
+* **PATCH** `/api/Medicines/{id}**`: Dedicated endpoint for manual stock level adjustments (🔒 Admin Only).
+* **PATCH** `/api/Medicines/{id}/stocks**`: Updates general medicine data including pricing and expiry (🔒 Admin Only).
+* **DELETE** `/api/Medicines/{id}**`: Removes a medicine record from the system (🔒 Admin Only).
 
 * **Category Management:**
-* **GET `/api/Categories**`: Retrieves all available categories for organization.
-* **POST `/api/Categories**`: Creates a new medicine category (🔒 Admin Only).
-* **PUT `/api/Categories/{id}**`: Modifies the details of an existing category (🔒 Admin Only).
-* **DELETE `/api/Categories/{id}**`: Permanently deletes a medicine category (🔒 Admin Only).
+* **GET** `/api/Categories**`: Retrieves all available categories for organization.
+* **POST** `/api/Categories**`: Creates a new medicine category (🔒 Admin Only).
+* **PUT** `/api/Categories/{id}**`: Modifies the details of an existing category (🔒 Admin Only).
+* **DELETE** `/api/Categories/{id}**`: Permanently deletes a medicine category (🔒 Admin Only).
 
 * **Sales & Transactions:**
-* **POST `/api/Sales**`: Processes new sales transactions with **Automatic Stock Deduction**.
-* **GET `/api/Sales**`: Retrieves the complete historical log of all processed sales(Pharmacist, Admin).
-* **GET `/api/Sales/{id}**`: Fetches specific transaction details, including individual items sold(Pharmacist, Admin).
-* **PUT `/api/Sales/{id}**`: Updates existing sales records for corrections (🔒 Admin Only).
-* **DELETE `/api/Sales/{id}**`: Deletes a sale and automatically **restores the medicine stock**(🔒 Admin Only).
+* **POST** `/api/Sales**`: Processes new sales transactions with **Automatic Stock Deduction**.
+* **GET** `/api/Sales**`: Retrieves the complete historical log of all processed sales(Pharmacist, Admin).
+* **GET** `/api/Sales/{id}**`: Fetches specific transaction details, including individual items sold(Pharmacist, Admin).
+* **PUT** `/api/Sales/{id}**`: Updates existing sales records for corrections (🔒 Admin Only).
+* **DELETE** `/api/Sales/{id}**`: Deletes a sale and automatically **restores the medicine stock**(🔒 Admin Only).
 
 * **User Profile & Media:**
-* **POST `/api/Users/upload-photo**`: Securely uploads a profile image (Supports JPG, JPEG, PNG up to 2MB)(Pharmacist, Admin).
+* **POST** `/api/Users/upload-photo**`: Securely uploads a profile image (Supports JPG, JPEG, PNG up to 2MB)(Pharmacist, Admin).
 ---
 ## 🚀 Setup Instructions
 Follow these steps to set up and run the project locally.
