@@ -1,8 +1,8 @@
 # 🏥 PharmaLink API
 
 > **Course:** IT 3117 – Application Development  
-> **Student:** [Your Name Here]  
-> **Semester:** First Semester SY 2025-2026  
+> **Student:** Alyssa Faith Bagunbon, Jay-An Calago, James Ian Bayonas  
+> **Semester:** 3rd Year, First Semester SY 2025-2026  
 
 ## 📖 Project Overview
 **PharmaLink** is a comprehensive pharmacy inventory and sales management system built using **ASP.NET Core Web API**. It is designed to streamline interactions between pharmacy administrators and staff by managing medicine stocks, categorizing products, and processing sales transactions efficiently.
