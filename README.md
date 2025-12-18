@@ -97,7 +97,7 @@ CREATE TABLE SalesItems (
 GO
 ```
 ---
-##🚀 Setup Instructions
+## 🚀 Setup Instructions
 Follow these steps to set up and run the project locally.
 
 Prerequisites
@@ -116,7 +116,7 @@ cd pharmalink
 ```
 ---
 
-##2. Database Configuration
+## 2. Database Configuration
 
 Open **PharmaLink.API/appsettings.json**
 
