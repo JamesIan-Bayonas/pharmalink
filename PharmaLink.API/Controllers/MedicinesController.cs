@@ -18,7 +18,7 @@ namespace PharmaLink.API.Controllers
         private readonly IMapper _mapper;
         public MedicinesController(IMedicineRepository medicineRepository, IMapper mapper)
         {
-            _medicineRepository = medicineRepository;
+            _medicineRepository = medicineRepository;   
             _mapper = mapper;
         }
 
@@ -28,9 +28,23 @@ namespace PharmaLink.API.Controllers
         {
             try
             {
+                // 1. ROBUST VALIDATION: Check for duplicates using the normalized query
+                var existingMedicine = await _medicineRepository.GetByNameAsync(request.Name);
+
+                if (existingMedicine != null)
+                {
+                    // Return 409 Conflict with a helpful message
+                    return Conflict(new { message = $"The medicine '{existingMedicine.Name}' already exists (ID: {existingMedicine.Id}). Please update the stock instead of creating a new entry." });
+                }
+
+                // 2. Proceed if unique
                 var newMedicine = _mapper.Map<Medicine>(request);
+
+                // Sanitize the name before saving (store it clean)
+                newMedicine.Name = request.Name.Trim();
+
                 int newId = await _medicineRepository.CreateAsync(newMedicine);
-                // Return 201 Created
+
                 return Created("", new { id = newId, message = "Medicine added successfully" });
             }
             catch (Exception ex)
@@ -54,7 +68,7 @@ namespace PharmaLink.API.Controllers
 
                 var medicineDtos = _mapper.Map<IEnumerable<MedicineResponseDto>>(medicines);
 
-                // Create a smart response with Metadata
+                // Implement a smart response with Metadata
                 var response = new
                 {
                     Meta = new
@@ -97,18 +111,19 @@ namespace PharmaLink.API.Controllers
         }
 
         // PATCH: api/Medicines/5/stock
-        [HttpPatch("{id}")]
+        [HttpPatch("{id}/stock")]
         [AdminGuard("ACCESS DENIED: Stock manipulation is strictly prohibited for your role.")]
         public async Task<IActionResult> UpdateStock(int id, [FromBody] UpdateMedicineStockDto request)
         {
             try
             {
+                // Calls the repository method that runs:
+                // "UPDATE Medicines SET StockQuantity = ... WHERE Id = ..."
                 bool success = await _medicineRepository.UpdateStockAsync(id, request.Quantity);
 
-                if (!success)
-                    return NotFound(new { message = "Medicine not found" });
+                if (!success) return NotFound(new { message = "Medicine not found" });
 
-                return Ok(new { message = "Stock updated successfully" });
+                return Ok(new { message = "Stock count updated successfully" });
             }
             catch (Exception ex)
             {
@@ -116,31 +131,30 @@ namespace PharmaLink.API.Controllers
             }
         }
 
-        // PUT: api/Medicines/5
-        [HttpPatch("{id}/stocks")]
+        [HttpPut("{id}")]
         [AdminGuard("ACCESS DENIED: You are not authorized to modify medicine records.")]
         public async Task<IActionResult> UpdateMedicine(int id, [FromBody] UpdateMedicineDto request)
         {
             try
             {
-                // Check if it exists (Optional, but good practice)
                 var existingMedicine = await _medicineRepository.GetByIdAsync(id);
                 if (existingMedicine == null) return NotFound(new { message = "Medicine not found" });
 
+                // Map ALL fields (Name, Price, Desc, etc.) because this is a PUT
                 _mapper.Map(request, existingMedicine);
 
-                // Save to DB
                 bool success = await _medicineRepository.UpdateAsync(existingMedicine);
 
                 if (!success) return BadRequest(new { message = "Failed to update medicine" });
 
-                return Ok(new { message = "Medicine updated successfully" });
+                return Ok(new { message = "Medicine details updated successfully" });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
             }
         }
+
         // DELETE: api/Medicines/5
         [HttpDelete("{id}")]
         [AdminGuard("ACCESS DENIED: Deleting records is a violation of protocol. This action has been flagged.")]

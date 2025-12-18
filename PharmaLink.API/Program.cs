@@ -59,7 +59,6 @@ builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IMedicineService, MedicineService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-// JWT Auth Setup (THE MISSING PIECE)
 var jwtKey = builder.Configuration.GetSection("JwtSettings:Key").Value
              ?? "this_is_a_very_long_super_secret_key_for_pharmalink_security";
 
@@ -74,7 +73,7 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-        ValidateIssuer = false, // Set to true if you have an Issuer URL
+        ValidateIssuer = false,
         ValidateAudience = false
     };
 });

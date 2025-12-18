@@ -146,7 +146,7 @@ namespace PharmaLink.API.Services
 
                 // Note: Validating stock here is tricky because we haven't "Restored" the old stock yet.
                 // ideally, we assume the Repo transaction handles the "Net" change, 
-                // or we just check if (Stock + OldQty >= NewQty). 
+                // or we just check if (Stock + OldQty > NewQty). 
                 // For simplicity in this project, we check absolute stock.
                 if (medicine.StockQuantity < itemDto.Quantity)
                     throw new Exception($"Insufficient stock for {medicine.Name}.");

@@ -7,6 +7,8 @@ namespace PharmaLink.API.DTOs.Medicines
         [Required]
         public required string Name { get; set; }
 
+        public string? Description { get; set; }
+
         [Required]
         public required int CategoryId { get; set; }
 

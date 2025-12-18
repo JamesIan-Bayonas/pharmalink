@@ -19,6 +19,19 @@ namespace PharmaLink.API.Repositories
             return await connection.QuerySingleOrDefaultAsync<Medicine>(sql, new { Id = id });
         }
 
+        public async Task<Medicine?> GetByNameAsync(string name)
+        {
+            using var connection = new SqlConnection(_connectionString);
+
+            // Use LOWER() to ignore casing and LTRIM/RTRIM to ignore hidden spaces
+            // Ensures "  Butamirate Citrate  " matches "butamirate citrate"
+            string sql = @"
+                SELECT * FROM Medicines 
+                WHERE LOWER(LTRIM(RTRIM(Name))) = LOWER(LTRIM(RTRIM(@Name)))";
+
+            return await connection.QuerySingleOrDefaultAsync<Medicine>(sql, new { Name = name });
+        }
+
         public async Task<(IEnumerable<Medicine>, int)> GetAllAsync(MedicineParams parameters)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -79,9 +92,9 @@ namespace PharmaLink.API.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
             string sql = @"
-            INSERT INTO Medicines (CategoryId, Name, StockQuantity, Price, ExpiryDate)
-            VALUES (@CategoryId, @Name, @StockQuantity, @Price, @ExpiryDate);
-            SELECT CAST(SCOPE_IDENTITY() as int);";
+                INSERT INTO Medicines (CategoryId, Name, Description, StockQuantity, Price, ExpiryDate)
+                VALUES (@CategoryId, @Name, @Description, @StockQuantity, @Price, @ExpiryDate);
+                SELECT CAST(SCOPE_IDENTITY() as int);";
             return await connection.QuerySingleAsync<int>(sql, medicine);
         }
 
@@ -110,11 +123,12 @@ namespace PharmaLink.API.Repositories
             string sql = @"
                 UPDATE Medicines 
                 SET Name = @Name, 
+                    Description = @Description, -- Added this line
                     CategoryId = @CategoryId, 
                     StockQuantity = @StockQuantity, 
                     Price = @Price, 
                     ExpiryDate = @ExpiryDate
-                WHERE Id = @Id";
+                    WHERE Id = @Id";
 
             var rows = await connection.ExecuteAsync(sql, medicine);
             return rows > 0;

@@ -1,4 +1,5 @@
-﻿using PharmaLink.API.DTOs.Medicines;
+﻿using AutoMapper;
+using PharmaLink.API.DTOs.Medicines;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
 using PharmaLink.API.Interfaces.RepositoryInterface;
@@ -6,7 +7,7 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
-    public class MedicineService(IMedicineRepository medicineRepository) : IMedicineService
+    public class MedicineService(IMedicineRepository medicineRepository, IMapper mapper) : IMedicineService
     {
         public async Task<IEnumerable<MedicineResponseDto>> GetAllMedicinesAsync()
         {
@@ -22,15 +23,7 @@ namespace PharmaLink.API.Services
             var (medicines, totalCount) = await medicineRepository.GetAllAsync(defaultParams);
 
             // Logic: Map Entity to DTO here
-            return medicines.Select(m => new MedicineResponseDto
-            {
-                Id = m.Id,
-                Name = m.Name,
-                CategoryId = m.CategoryId,
-                StockQuantity = m.StockQuantity,
-                Price = m.Price,
-                ExpiryDate = m.ExpiryDate
-            });
+            return mapper.Map<IEnumerable<MedicineResponseDto>>(medicines);
         }
 
         public async Task<MedicineResponseDto?> GetMedicineByIdAsync(int id)
@@ -38,29 +31,14 @@ namespace PharmaLink.API.Services
             var medicine = await medicineRepository.GetByIdAsync(id);
             if (medicine == null) return null;
 
-            return new MedicineResponseDto
-            {
-                Id = medicine.Id,
-                Name = medicine.Name,
-                CategoryId = medicine.CategoryId,
-                StockQuantity = medicine.StockQuantity,
-                Price = medicine.Price,
-                ExpiryDate = medicine.ExpiryDate
-            };
+            return mapper.Map<MedicineResponseDto>(medicine);
         }
 
         public async Task<int> CreateMedicineAsync(CreateMedicineDto request)
         {
             // Business Logic: You could add validation here (e.g. "Price cannot be lower than cost")
 
-            var newMedicine = new Medicine
-            {
-                Name = request.Name,
-                CategoryId = request.CategoryId,
-                StockQuantity = request.StockQuantity,  
-                Price = request.Price,
-                ExpiryDate = request.ExpiryDate
-            };  
+            var newMedicine = mapper.Map<Medicine>(request);
 
             return await medicineRepository.CreateAsync(newMedicine);
         }

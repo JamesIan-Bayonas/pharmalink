@@ -24,7 +24,7 @@ This project implements all requirements specified in the Final Project guidelin
 * **Sales System:**
     * **Transactional Integrity:** Sales are processed atomically; if any part fails, the entire transaction rolls back.
     * **Automatic Stock Deduction:** Selling an item immediately reduces inventory.
-* **Error Handling:** Global Exception Middleware for consistent error responses.
+* **Error Handling:** Global Exception M    iddleware for consistent error responses.
 * **Documentation:** Swagger UI integrated for API testing.
 
 ---
