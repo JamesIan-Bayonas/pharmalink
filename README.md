@@ -102,10 +102,10 @@ Follow these steps to set up and run the project locally.
 
 Prerequisites
 .NET 8.0 SDK
-
 SQL Server (LocalDB or Express)
-
 Visual Studio or VS Code
+
+---
 
 Installation Steps
 1. Clone the Repository
@@ -118,32 +118,34 @@ cd pharmalink
 
 ##2. Database Configuration
 
-Open PharmaLink.API/appsettings.json.
+Open **PharmaLink.API/appsettings.json**
 
-Update the ConnectionStrings:DefaultConnection to match your SQL Server instance:
+Update the ConnectionStrings:DefaultConnection to match your **SQL Server** instance:
 
 ```json
 "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PharmaLinkDB;Trusted_Connection=True;TrustServerCertificate=True;"
 ```
 ---
 
-3. Initialize Database
+## 3. Initialize Database
 
-Open SQL Server Management Studio (SSMS).
-
-Copy the SQL Creation Scripts provided in the section above.
-
-Execute the scripts to generate the database and required tables.
-
+1. Open SQL Server Management Studio (SSMS).
+2. Copy the SQL Creation Scripts provided in the section above.
+3. Execute the scripts to generate the database and required tables.
 4. Run the Application
 
-Bash
+---
 
+## 4 Run the Application
+```bash
 cd PharmaLink.API
 dotnet restore
 dotnet run
-5. Access the API
+```
 
-The API will start at https://localhost:5001 (or the port shown in your terminal).
+---
 
-Visit Swagger UI to test the endpoints: https://localhost:5001/swagger/index.html
+## 5. Access the API
+
+* The API will start at https://localhost:5001 (or the port shown in your terminal).
+* Visit **Swagger UI** to test the endpoints: **https://localhost:5001/swagger/index.html**
