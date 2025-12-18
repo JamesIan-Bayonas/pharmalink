@@ -1,0 +1,102 @@
+# 🏥 PharmaLink API
+
+> **Course:** IT 3117 – Application Development  
+> **Student:** [Your Name Here]  
+> **Semester:** First Semester SY 2025-2026  
+
+## 📖 Project Overview
+**PharmaLink** is a comprehensive pharmacy inventory and sales management system built using **ASP.NET Core Web API**. It is designed to streamline interactions between pharmacy administrators and staff by managing medicine stocks, categorizing products, and processing sales transactions efficiently.
+
+The system ensures accurate inventory tracking by automatically deducting stock upon sales and provides secure access control via **JWT-based Authentication** and **Role-Based Access Control (RBAC)**.
+
+---
+
+## ✨ Implemented Features
+This project implements all requirements specified in the Final Project guidelines:
+
+* **Architecture:** Layered structure using **Controllers**, **Services**, **Repositories**, and **DTOs**.
+* **Authentication:** Secure **JWT** (JSON Web Token) login and registration.
+* **Data Access:** High-performance data manipulation using **Dapper** (Micro-ORM).
+* **Database:** **SQL Server** relational database with complex relationships.
+* **Inventory Management:**
+    * CRUD operations for Medicines and Categories.
+    * **Pagination, Filtering, and Sorting** for medicine lists.
+* **Sales System:**
+    * **Transactional Integrity:** Sales are processed atomically; if any part fails, the entire transaction rolls back.
+    * **Automatic Stock Deduction:** Selling an item immediately reduces inventory.
+* **Error Handling:** Global Exception Middleware for consistent error responses.
+* **Documentation:** Swagger UI integrated for API testing.
+
+---
+
+## 🛠 Tech Stack
+* **Framework:** ASP.NET Core 8.0 Web API
+* **Language:** C#
+* **Database:** Microsoft SQL Server
+* **ORM:** Dapper
+* **Auth:** JWT Bearer Authentication
+* **Validation:** DataAnnotations
+
+---
+
+## 🗄 Database Design & Scripts
+
+### Database Entities
+The database consists of 5 main entities:
+1.  **Users** (1) ────< (Many) **Sales**
+2.  **Sales** (1) ────< (Many) **SalesItems**
+3.  **Medicines** (1) ────< (Many) **SalesItems**
+4.  **Categories** (1) ────< (Many) **Medicines**
+
+### 📜 SQL Creation Scripts
+*Run these scripts in SQL Server Management Studio (SSMS) to set up the database.*
+
+```sql
+CREATE DATABASE PharmaLinkDB;
+GO
+USE PharmaLinkDB;
+GO
+
+-- 1. Users Table
+CREATE TABLE Users (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserName NVARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(MAX) NOT NULL,
+    Role NVARCHAR(50) NOT NULL, -- 'Admin', 'User'
+    ProfileImagePath NVARCHAR(MAX) NULL
+);
+
+-- 2. Categories Table
+CREATE TABLE Categories (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL
+);
+
+-- 3. Medicines Table
+CREATE TABLE Medicines (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    CategoryId INT NOT NULL FOREIGN KEY REFERENCES Categories(Id),
+    Description NVARCHAR(MAX) NULL,
+    Name NVARCHAR(200) NOT NULL,
+    StockQuantity INT NOT NULL DEFAULT 0,
+    Price DECIMAL(18,2) NOT NULL,
+    ExpiryDate DATETIME NOT NULL
+);   
+
+-- 4. Sales Table (Transaction Header)
+CREATE TABLE Sales (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL FOREIGN KEY REFERENCES Users(Id),
+    TotalAmount DECIMAL(18,2) NOT NULL,
+    TransactionDate DATETIME NOT NULL DEFAULT GETDATE()
+);
+
+-- 5. SalesItems Table (Transaction Details)
+CREATE TABLE SalesItems (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    SaleId INT NOT NULL FOREIGN KEY REFERENCES Sales(Id) ON DELETE CASCADE,
+    MedicineId INT NOT NULL FOREIGN KEY REFERENCES Medicines(Id),
+    Quantity INT NOT NULL,
+    UnitPrice DECIMAL(18,2) NOT NULL
+);
+GO
