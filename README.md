@@ -1,17 +1,17 @@
-# 🏥 PharmaLink API
+## PharmaLink API
 
 > **Course:** IT 3117 – Application Development  
 > **Student:** Alyssa Faith Bagunbon, Jay-An Calago, James  Ian Bayonas  
 > **Semester:** 3rd Year, First Semester SY 2025-2026  
 
-## 📖 Project Overview
+## Project Overview
 **PharmaLink** is a comprehensive pharmacy inventory and sales management system built using **ASP.NET Core Web API**. It is designed to streamline interactions between pharmacy administrators and staff by managing medicine stocks, categorizing products, and processing sales transactions efficiently.
 
 The system ensures accurate inventory tracking by automatically deducting stock upon sales and provides secure access control via **JWT-based Authentication** and **Role-Based Access Control (RBAC)**.
 
 ---
 
-## ✨ Implemented Features
+## Implemented Features
 This project implements all requirements specified in the Final Project guidelines:
 
 * **Architecture:** Layered structure using **Controllers**, **Services**, **Repositories**, and **DTOs**.
@@ -29,7 +29,7 @@ This project implements all requirements specified in the Final Project guidelin
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 * **Framework:** ASP.NET Core 8.0 Web API
 * **Language:** C#
 * **Database:** Microsoft SQL Server
@@ -39,7 +39,7 @@ This project implements all requirements specified in the Final Project guidelin
 
 ---
 
-## 🗄 Database Design & Scripts
+## Database Design & Scripts
 
 ### Database Entities
 The database consists of 5 main entities:
@@ -104,14 +104,16 @@ Establishing your intent: You want to convert your list of API endpoints into a 
 
 This project provides a comprehensive set of endpoints for managing the pharmacy system while also verifying who can access a certain endpoints:
 
-* **Authentication & Account Management:**
+## *Authentication & Account Management:*
+ 
 * **POST** `/api/Auth/register`: Registers a new user account with a designated role(Public).
 * **POST** `/api/Auth/login`: Authenticates credentials and returns a secure JWT token(Public).
 * **GET** `/api/Auth/users`: Retrieves a list of all registered users (🔒 Admin Only).
 * **PUT** `/api/Auth/update`: Allows logged-in users to update their own credentials.
 * **DELETE** `/api/Auth/delete`: Allows users to permanently delete their own accounts.
+  
+## *Medicine Inventory:*
 
-* **Medicine Inventory:**
 * **GET** `/api/Medicines`: Lists medicines with built-in support for **Pagination, Searching, and Sorting**(Pharmacist, Admin).
 * **GET** `/api/Medicines/{id}`: Retrieves comprehensive details for a specific medicine record(Pharmacist, Admin).
 * **POST** `/api/Medicines`: Adds a new medicine record to the inventory (🔒 Admin Only).
@@ -119,34 +121,39 @@ This project provides a comprehensive set of endpoints for managing the pharmacy
 * **PATCH** `/api/Medicines/{id}/stocks`: Updates general medicine data including pricing and expiry (🔒 Admin Only).
 * **DELETE** `/api/Medicines/{id}`: Removes a medicine record from the system (🔒 Admin Only).
 
-* **Category Management:**
+## *Category Management:*
+* 
 * **GET** `/api/Categories`: Retrieves all available categories for organization.
 * **POST** `/api/Categories`: Creates a new medicine category (🔒 Admin Only).
 * **PUT** `/api/Categories/{id}`: Modifies the details of an existing category (🔒 Admin Only).
 * **DELETE** `/api/Categories/{id}`: Permanently deletes a medicine category (🔒 Admin Only).
 
-* **Sales & Transactions:**
+## *Sales & Transactions:*
+  
 * **POST** `/api/Sales`: Processes new sales transactions with **Automatic Stock Deduction**.
 * **GET** `/api/Sales`: Retrieves the complete historical log of all processed sales(Pharmacist, Admin).
 * **GET** `/api/Sales/{id}`: Fetches specific transaction details, including individual items sold(Pharmacist, Admin).
 * **PUT** `/api/Sales/{id}`: Updates existing sales records for corrections (🔒 Admin Only).
 * **DELETE** `/api/Sales/{id}`: Deletes a sale and automatically **restores the medicine stock**(🔒 Admin Only).
 
-* **User Profile & Media:**
+## User Profile & Media:
+
 * **POST** `/api/Users/upload-photo`: Securely uploads a profile image (Supports JPG, JPEG, PNG up to 2MB)(Pharmacist, Admin).
+  
 ---
-## 🚀 Setup Instructions
+
+## Setup Instructions
 Follow these steps to set up and run the project locally.
 
-Prerequisites
+**Prerequisites**
 .NET 8.0 SDK
 SQL Server (LocalDB or Express)
 Visual Studio or VS Code
 
 ---
 
-Installation Steps
-1. Clone the Repository
+*Installation Steps*
+## 1. Clone the Repository
 
 ```bash
 git clone [https://github.com/jamesian-bayonas/pharmalink.git](https://github.com/jamesian-bayonas/pharmalink.git)
@@ -158,7 +165,7 @@ cd pharmalink
 
 Open **PharmaLink.API/appsettings.json**
 
-Update the ConnectionStrings:DefaultConnection to match your **SQL Server** instance:
+Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* instance:
 
 ```json
 "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PharmaLinkDB;Trusted_Connection=True;TrustServerCertificate=True;"
@@ -180,10 +187,9 @@ cd PharmaLink.API
 dotnet restore
 dotnet run
 ```
-
 ---
 
 ## 5. Access the API
 
-* The API will start at https://localhost:5001 (or the port shown in your terminal).
-* Visit **Swagger UI** to test the endpoints: **https://localhost:5001/swagger/index.html**
+1. The API will start at **https://localhost:5001** (or the port shown in your terminal).
+2. Visit **Swagger UI** to test the endpoints: **https://localhost:5001/swagger/index.html**
