@@ -51,6 +51,7 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMedicineRepository, MedicineRepository>();
 builder.Services.AddScoped<ISaleRepository, SaleRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 
 //Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -58,6 +59,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IMedicineService, MedicineService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 var jwtKey = builder.Configuration.GetSection("JwtSettings:Key").Value
              ?? "this_is_a_very_long_super_secret_key_for_pharmalink_security";

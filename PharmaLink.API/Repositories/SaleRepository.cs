@@ -155,7 +155,7 @@ namespace PharmaLink.API.Repositories
                 }
 
                 // 4. UPDATE HEADER (Total Amount & Date)
-                string updateHeaderSql = @"
+                string updateHeaderSql = @" 
                     UPDATE Sales 
                     SET TotalAmount = @TotalAmount, 
                         UserId = @UserId,

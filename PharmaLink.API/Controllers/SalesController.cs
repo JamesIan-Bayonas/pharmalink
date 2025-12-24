@@ -16,11 +16,11 @@ namespace PharmaLink.API.Controllers
         // POST: Create a new Sale
         [HttpPost()]
         [Authorize(Roles = "Admin,Pharmacist")] // Pharmacist sells medicines that matches medicine's "id"
-        public async Task<IActionResult> CreateSale([FromBody] CreateSaleRequestDto request)
-        {
-            // Extract UserId from the JWT Token claims
-            var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-            if (userIdClaim == null) return Unauthorized();
+            public async Task<IActionResult> CreateSale([FromBody] CreateSaleRequestDto request)
+            {
+                // Extract UserId from the JWT Token claims
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+                if (userIdClaim == null) return Unauthorized();
 
             int userId = int.Parse(userIdClaim.Value);
             try

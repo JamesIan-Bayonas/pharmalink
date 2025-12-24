@@ -172,22 +172,39 @@ Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* in
 ```
 ---
 
+<<<<<<< Updated upstream
 ## 3. Initialize Database
+=======
+*1 Open SQL Server Management Studio (SSMS).
+Copy the SQL Creation Scripts provided in the section above.
+Execute the scripts to generate the database and required tables.
+>>>>>>> Stashed changes
 
 1. Open SQL Server Management Studio (SSMS).
 2. Copy the SQL Creation Scripts provided in the section above.
 3. Execute the scripts to generate the database and required tables.
 4. Run the Application
 
+<<<<<<< Updated upstream
 ---
+=======
+```bash
+>>>>>>> Stashed changes
 
 ## 4 Run the Application
 ```bash
 cd PharmaLink.API
 dotnet restore
 dotnet run
+<<<<<<< Updated upstream
 ```
 ---
+=======
+
+```
+
+5. Access the API
+>>>>>>> Stashed changes
 
 ## 5. Access the API
 

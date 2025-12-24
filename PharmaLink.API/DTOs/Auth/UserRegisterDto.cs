@@ -12,7 +12,7 @@
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         public required string Password { get; set; }
 
-        [Required]
+        [Required] 
         public required string Role { get; set; }
     }
 }
