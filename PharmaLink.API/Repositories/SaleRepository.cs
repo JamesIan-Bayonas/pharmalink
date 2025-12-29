@@ -176,5 +176,31 @@ namespace PharmaLink.API.Repositories
                 throw;
             }
         }
+
+        // PharmaLink.API/Repositories/SaleRepository.cs
+        public async Task<(IEnumerable<Sale>, int)> GetAllPagedAsync(SalesParams parameters)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var sqlBuilder = new StringBuilder("SELECT * FROM Sales WHERE 1=1 ");
+            var dbParams = new DynamicParameters();
+
+            if (parameters.StartDate.HasValue)
+            {
+                sqlBuilder.Append(" AND TransactionDate >= @Start");
+                dbParams.Add("Start", parameters.StartDate);
+            }
+
+            // Get Total Count for metadata
+            string countSql = sqlBuilder.ToString().Replace("SELECT *", "SELECT COUNT(*)");
+            int totalCount = await connection.ExecuteScalarAsync<int>(countSql, dbParams);
+
+            // Apply Pagination
+            sqlBuilder.Append(" ORDER BY TransactionDate DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
+            dbParams.Add("Offset", (parameters.PageNumber - 1) * parameters.PageSize);
+            dbParams.Add("PageSize", parameters.PageSize);
+
+            var items = await connection.QueryAsync<Sale>(sqlBuilder.ToString(), dbParams);
+            return (items, totalCount);
+        }
     }
 }
