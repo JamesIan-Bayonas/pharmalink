@@ -11,5 +11,6 @@ namespace PharmaLink.API.Interfaces.RepositoryInterface
         Task<IEnumerable<SaleItem>> GetItemsBySaleIdAsync(int saleId);
         Task<bool> DeleteSaleTransactionAsync(int saleId);
         Task<bool> UpdateSaleTransactionAsync(int saleId, Sale saleHeader, List<SaleItem> newItems);
+        Task<(IEnumerable<Sale>, int)> GetAllPagedAsync(SalesParams parameters);
     }       
 }
