@@ -3,6 +3,7 @@ using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
 {
@@ -173,9 +174,49 @@ namespace PharmaLink.API.Services
         }
 
         // PharmaLink.API/Services/SaleService.cs
-        public async Task<(IEnumerable<SaleResponseDto>, int)> GetAllSalesPagedAsync(SalesParams parameters)
+        //public async Task<(IEnumerable<SaleResponseDto>, int)> GetAllSalesPagedAsync(SalesParams parameters)
+        //{
+        //    return await saleRepo.GetAllWithDetailsAsync();
+        //}
+        public async Task<(IEnumerable<SaleResponseDto> Data, int TotalCount)> GetAllSalesPagedAsync(SalesParams parameters)
         {
-            return await saleRepo.GetAllWithDetailsAsync();
+            // 1. Get the paginated entities from the repo (Using 'saleRepo')
+            var (sales, totalCount) = await saleRepo.GetAllPagedAsync(parameters);
+
+            var responseList = new List<SaleResponseDto>();
+
+            // 2. Map the data
+            foreach (var sale in sales)
+            {
+                var items = await saleRepo.GetItemsBySaleIdAsync(sale.Id);
+
+                var saleDto = new SaleResponseDto
+                {
+                    Id = sale.Id,
+                    UserId = sale.UserId,
+                    TotalAmount = sale.TotalAmount,
+                    TransactionDate = sale.TransDate, // Fixed: Matches your Entity property 'TransDate'
+                    Items = new List<SaleItemResponseDto>()
+                };
+
+                foreach (var item in items)
+                {
+                    // Using 'medicineRepo' to match your class structure
+                    var medicine = await medicineRepo.GetByIdAsync(item.MedicineId);
+
+                    saleDto.Items.Add(new SaleItemResponseDto
+                    {
+                        Id = item.Id,
+                        MedicineId = item.MedicineId,
+                        MedicineName = medicine?.Name ?? "Deleted Medicine", // Null safety
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice
+                    });
+                }
+                responseList.Add(saleDto);
+            }
+
+            return (responseList, totalCount);
         }
 
     }
