@@ -3,7 +3,6 @@ using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
-//using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
 {
@@ -171,6 +170,12 @@ namespace PharmaLink.API.Services
 
             // 4. Call Repo
             return await saleRepo.UpdateSaleTransactionAsync(id, updatedSaleHeader, newSaleItems);
+        }
+
+        // PharmaLink.API/Services/SaleService.cs
+        public async Task<(IEnumerable<SaleResponseDto>, int)> GetAllSalesPagedAsync(SalesParams parameters)
+        {
+            return await saleRepo.GetAllWithDetailsAsync();
         }
 
     }
