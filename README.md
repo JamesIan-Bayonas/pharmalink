@@ -108,33 +108,33 @@ This project provides a comprehensive set of endpoints for managing the pharmacy
  
 * **POST** `/api/Auth/register`: Registers a new user account with a designated role(Public).
 * **POST** `/api/Auth/login`: Authenticates credentials and returns a secure JWT token(Public).
-* **GET** `/api/Auth/users`: Retrieves a list of all registered users (🔒 Admin Only).
-* **PUT** `/api/Auth/update`: Allows logged-in users to update their own credentials.
-* **DELETE** `/api/Auth/delete`: Allows users to permanently delete their own accounts.
+* **GET** `/api/Auth/users`: Retrieves a list of all registered users (Admin Only).
+* **PUT** `/api/Auth/update`: Allows logged-in users to update their own credentials(Pharmacist, Admin).
+* **DELETE** `/api/Auth/delete`: Allows users to permanently delete their own accounts(Admin Only).
   
 ## *Medicine Inventory:*
 
 * **GET** `/api/Medicines`: Lists medicines with built-in support for **Pagination, Searching, and Sorting**(Pharmacist, Admin).
 * **GET** `/api/Medicines/{id}`: Retrieves comprehensive details for a specific medicine record(Pharmacist, Admin).
-* **POST** `/api/Medicines`: Adds a new medicine record to the inventory (🔒 Admin Only).
-* **PATCH** `/api/Medicines/{id}`: Dedicated endpoint for manual stock level adjustments (🔒 Admin Only).
-* **PATCH** `/api/Medicines/{id}/stocks`: Updates general medicine data including pricing and expiry (🔒 Admin Only).
-* **DELETE** `/api/Medicines/{id}`: Removes a medicine record from the system (🔒 Admin Only).
+* **POST** `/api/Medicines`: Adds a new medicine record to the inventory (Admin Only).
+* **PATCH** `/api/Medicines/{id}`: Dedicated endpoint for manual stock level adjustments (Admin Only).
+* **PATCH** `/api/Medicines/{id}/stocks`: Updates general medicine data including pricing and expiry (Admin Only).
+* **DELETE** `/api/Medicines/{id}`: Removes a medicine record from the system (Admin Only).
 
 ## *Category Management:*
 * 
 * **GET** `/api/Categories`: Retrieves all available categories for organization.
-* **POST** `/api/Categories`: Creates a new medicine category (🔒 Admin Only).
-* **PUT** `/api/Categories/{id}`: Modifies the details of an existing category (🔒 Admin Only).
-* **DELETE** `/api/Categories/{id}`: Permanently deletes a medicine category (🔒 Admin Only).
+* **POST** `/api/Categories`: Creates a new medicine category (Admin Only).
+* **PUT** `/api/Categories/{id}`: Modifies the details of an existing category (Admin Only).
+* **DELETE** `/api/Categories/{id}`: Permanently deletes a medicine category (Admin Only).
 
 ## *Sales & Transactions:*
   
 * **POST** `/api/Sales`: Processes new sales transactions with **Automatic Stock Deduction**.
 * **GET** `/api/Sales`: Retrieves the complete historical log of all processed sales(Pharmacist, Admin).
 * **GET** `/api/Sales/{id}`: Fetches specific transaction details, including individual items sold(Pharmacist, Admin).
-* **PUT** `/api/Sales/{id}`: Updates existing sales records for corrections (🔒 Admin Only).
-* **DELETE** `/api/Sales/{id}`: Deletes a sale and automatically **restores the medicine stock**(🔒 Admin Only).
+* **PUT** `/api/Sales/{id}`: Updates existing sales records for corrections (Admin Only).
+* **DELETE** `/api/Sales/{id}`: Deletes a sale and automatically **restores the medicine stock**(Admin Only).
 
 ## User Profile & Media:
 
@@ -172,41 +172,27 @@ Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* in
 ```
 ---
 
-<<<<<<< Updated upstream
 ## 3. Initialize Database
-=======
-*1 Open SQL Server Management Studio (SSMS).
-Copy the SQL Creation Scripts provided in the section above.
-Execute the scripts to generate the database and required tables.
->>>>>>> Stashed changes
-
 1. Open SQL Server Management Studio (SSMS).
 2. Copy the SQL Creation Scripts provided in the section above.
 3. Execute the scripts to generate the database and required tables.
 4. Run the Application
 
-<<<<<<< Updated upstream
 ---
-=======
+
 ```bash
->>>>>>> Stashed changes
 
 ## 4 Run the Application
-```bash
 cd PharmaLink.API
 dotnet restore
 dotnet run
-<<<<<<< Updated upstream
+
 ```
 ---
-=======
 
 ```
-
-5. Access the API
->>>>>>> Stashed changes
 
 ## 5. Access the API
 
-1. The API will start at **https://localhost:5001** (or the port shown in your terminal).
-2. Visit **Swagger UI** to test the endpoints: **https://localhost:5001/swagger/index.html**
+1. The API will start at https://localhost:5001 (or the port shown in your terminal).
+2. Visit Swagger UI to test the endpoints: https://localhost:5001/swagger/index.html
