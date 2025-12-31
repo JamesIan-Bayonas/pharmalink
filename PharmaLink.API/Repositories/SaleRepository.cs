@@ -1,8 +1,10 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using PharmaLink.API.DTOs.Sales;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
+using System.Text;
 
 namespace PharmaLink.API.Repositories
 {
