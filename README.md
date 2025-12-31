@@ -48,7 +48,7 @@ The database consists of 5 main entities:
 3.  **Medicines** (1) ────< (Many) **SalesItems**
 4.  **Categories** (1) ────< (Many) **Medicines**
 
-### 📜 SQL Creation Scripts
+### SQL Creation Scripts
 *Run these scripts in SQL Server Management Studio (SSMS) to set up the database.*
 
 ```sql
@@ -100,7 +100,7 @@ GO
 
 Establishing your intent: You want to convert your list of API endpoints into a specific nested bullet-point structure that matches the style of your "Implemented Features" section for your `README.md` file.
 
-## 🔌 API Endpoints
+## API Endpoints
 
 This project provides a comprehensive set of endpoints for managing the pharmacy system while also verifying who can access a certain endpoints:
 
@@ -180,9 +180,10 @@ Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* in
 
 ---
 
+## 4 Run the Application
+
 ```bash
 
-## 4 Run the Application
 cd PharmaLink.API
 dotnet restore
 dotnet run
@@ -190,9 +191,9 @@ dotnet run
 ```
 ---
 
-```
-
 ## 5. Access the API
 
+```bash
 1. The API will start at https://localhost:5001 (or the port shown in your terminal).
 2. Visit Swagger UI to test the endpoints: https://localhost:5001/swagger/index.html
+```
