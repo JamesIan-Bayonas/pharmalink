@@ -84,22 +84,21 @@ namespace PharmaLink.API.Controllers
             }
         }
 
-        [HttpDelete("delete")]
-        [Authorize]
-        public async Task<IActionResult> DeleteAccount()
+        
+        [HttpDelete("delete/{id}")] 
+        [AdminGuard("Admin Only")]  
+        public async Task<IActionResult> DeleteUser(int id)
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-                if (userIdClaim == null) return Unauthorized();
+             
+                var success = await _authService.DeleteUserAsync(id);
 
-                int userId = int.Parse(userIdClaim.Value);
-
-                bool success = await _authService.DeleteUserAsync(userId);
-
+              
                 if (!success) return NotFound(new { message = "User not found" });
 
-                return Ok(new { message = "Account deleted successfully" });
+                
+                return Ok(new { message = "User deleted successfully by Admin." });
             }
             catch (Exception ex)
             {
@@ -107,4 +106,4 @@ namespace PharmaLink.API.Controllers
             }
         }
     }
-}
+    }

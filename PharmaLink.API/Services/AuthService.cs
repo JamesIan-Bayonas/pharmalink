@@ -7,7 +7,7 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 
 namespace PharmaLink.API.Services
 {
-    public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService
+    public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService 
     {
         public async Task<string> RegisterAsync(User user, string password, string role)
         {
