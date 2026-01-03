@@ -9,5 +9,6 @@ namespace PharmaLink.API.Interfaces.ServiceInterface
         Task<object?> GetSaleByIdAsync(int id);
         Task<bool> DeleteSaleAsync(int id);
         Task<bool> UpdateSaleAsync(int id, int userId, UpdateSaleDto request);
+        Task<(IEnumerable<SaleResponseDto> Data, int TotalCount)> GetAllSalesPagedAsync(SalesParams parameters);
     }
 }

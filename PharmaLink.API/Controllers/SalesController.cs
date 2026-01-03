@@ -52,18 +52,31 @@ namespace PharmaLink.API.Controllers
             }
         }
         // GET: get all sales
+        // PharmaLink.API/Controllers/SalesController.cs
         [HttpGet]
         [Authorize(Roles = "Admin,Pharmacist")]
-        public async Task<IActionResult> GetAllSales()
+        public async Task<IActionResult> GetAllSales([FromQuery] SalesParams parameters)
         {
             try
             {
-                var sales = await _saleService.GetAllSalesAsync();
-                return Ok(sales);
+                var (sales, totalCount) = await _saleService.GetAllSalesPagedAsync(parameters);
+
+                return Ok(new
+                {
+                    Meta = new
+                    {
+                        TotalCount = totalCount,
+                        PageSize = parameters.PageSize,
+                        CurrentPage = parameters.PageNumber,
+                        TotalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize)
+                    },
+                    Data = sales
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                // This ensures the "Saitama Error" gives us an actual message to debug
+                return BadRequest(new { message = "Failed to fetch sales: " + ex.Message });
             }
         }
 
