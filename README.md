@@ -55,8 +55,9 @@ CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     UserName NVARCHAR(100) NOT NULL UNIQUE,
     PasswordHash NVARCHAR(MAX) NOT NULL,
-    Role NVARCHAR(50) NOT NULL, -- 'Admin', 'User'
-    ProfileImagePath NVARCHAR(MAX) NULL
+    Role NVARCHAR(50) NOT NULL, -- 'Admin', 'Pharmacist'
+    ProfileImagePath NVARCHAR(MAX) NULL,
+    CreatedAt DATETIME DEFAULT GETDATE()
 );
 
 CREATE TABLE Categories (
@@ -67,12 +68,12 @@ CREATE TABLE Categories (
 CREATE TABLE Medicines (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     CategoryId INT NOT NULL FOREIGN KEY REFERENCES Categories(Id),
-    Description NVARCHAR(MAX) NULL,
+    Description NVARCHAR(500) NULL,
     Name NVARCHAR(200) NOT NULL,
     StockQuantity INT NOT NULL DEFAULT 0,
     Price DECIMAL(18,2) NOT NULL,
     ExpiryDate DATETIME NOT NULL
-);   
+);
 
 CREATE TABLE Sales (
     Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -84,11 +85,17 @@ CREATE TABLE Sales (
 CREATE TABLE SalesItems (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     SaleId INT NOT NULL FOREIGN KEY REFERENCES Sales(Id) ON DELETE CASCADE,
-    MedicineId INT NOT NULL FOREIGN KEY REFERENCES Medicines(Id),
+    MedicineId INT NOT NULL FOREIGN KEY REFERENCES Medicines(Id) ON DELETE CASCADE,
     Quantity INT NOT NULL,
     UnitPrice DECIMAL(18,2) NOT NULL
 );
 GO
+
+SET IDENTITY_INSERT Categories ON;
+INSERT INTO Categories (Id, Name) VALUES 
+(1, 'Antibiotics'), (2, 'Analgesics'), (3, 'Antihistamines'), 
+(4, 'Vitamins'), (5, 'Antacids'), (6, 'Category 6');
+SET IDENTITY_INSERT Categories OFF;
 ```
 
 Establishing your intent: You want to convert your list of API endpoints into a specific nested bullet-point structure that matches the style of your "Implemented Features" section for your `README.md` file.
@@ -129,15 +136,18 @@ The API is secured using JWT Authentication. Below is a summary of available end
 | `PUT` | `/api/Sales/{id}` | Admin | Update an existing sale record (Restores & Re-deducts stock). |
 | `DELETE` | `/api/Sales/{id}` | Admin | Void/Delete a sale (Automatically restores stock). |
 
-### **Categories & Profile**
+### **Categories**
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/Categories` | Pharmacist, Admin | List all medicine categories. |
 | `POST` | `/api/Categories` | Admin | Create a new category. |
 | `PUT` | `/api/Categories/{id}` | Admin | Update an existing category. |
 | `DELETE` | `/api/Categories/{id}` | Admin | Delete a category. |
-| `POST` | `/api/Users/upload-photo` | Any Logged-in User | Upload a profile picture (Max 2MB, Images only). |
 
+### **Profile**
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/Users/upload-photo` | Any Logged-in User | Upload a profile picture (Max 2MB, Images only). |
 
 ## Setup Instructions
 Follow these steps to set up and run the project locally.
@@ -146,8 +156,6 @@ Follow these steps to set up and run the project locally.
 .NET 8.0 SDK
 SQL Server (LocalDB or Express)
 Visual Studio or VS Code
-
----
 
 *Installation Steps*
 ## 1. Clone the Repository
