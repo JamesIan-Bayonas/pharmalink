@@ -9,8 +9,6 @@
 
 The system ensures accurate inventory tracking by automatically deducting stock upon sales and provides secure access control via **JWT-based Authentication** and **Role-Based Access Control (RBAC)**.
 
----
-
 ## Implemented Features
 This project implements all requirements specified in the Final Project guidelines:
 
@@ -27,8 +25,6 @@ This project implements all requirements specified in the Final Project guidelin
 * **Error Handling:** Global Exception M    iddleware for consistent error responses.
 * **Documentation:** Swagger UI integrated for API testing.
 
----
-
 ## Tech Stack
 * **Framework:** ASP.NET Core 8.0 Web API
 * **Language:** C#
@@ -36,8 +32,6 @@ This project implements all requirements specified in the Final Project guidelin
 * **ORM:** Dapper
 * **Auth:** JWT Bearer Authentication
 * **Validation:** DataAnnotations
-
----
 
 ## Database Design & Scripts
 
@@ -96,7 +90,6 @@ CREATE TABLE SalesItems (
 );
 GO
 ```
----
 
 Establishing your intent: You want to convert your list of API endpoints into a specific nested bullet-point structure that matches the style of your "Implemented Features" section for your `README.md` file.
 
@@ -104,43 +97,47 @@ Establishing your intent: You want to convert your list of API endpoints into a 
 
 This project provides a comprehensive set of endpoints for managing the pharmacy system while also verifying who can access a certain endpoints:
 
-## *Authentication & Account Management:*
- 
-* **POST** `/api/Auth/register`: Registers a new user account with a designated role(Public).
-* **POST** `/api/Auth/login`: Authenticates credentials and returns a secure JWT token(Public).
-* **GET** `/api/Auth/users`: Retrieves a list of all registered users (Admin Only).
-* **PUT** `/api/Auth/update`: Allows logged-in users to update their own credentials(Pharmacist, Admin).
-* **DELETE** `/api/Auth/delete`: Allows users to permanently delete their own accounts(Admin Only).
-  
-## *Medicine Inventory:*
+## API Endpoints
 
-* **GET** `/api/Medicines`: Lists medicines with built-in support for **Pagination, Searching, and Sorting**(Pharmacist, Admin).
-* **GET** `/api/Medicines/{id}`: Retrieves comprehensive details for a specific medicine record(Pharmacist, Admin).
-* **POST** `/api/Medicines`: Adds a new medicine record to the inventory (Admin Only).
-* **PATCH** `/api/Medicines/{id}`: Dedicated endpoint for manual stock level adjustments (Admin Only).
-* **PATCH** `/api/Medicines/{id}/stocks`: Updates general medicine data including pricing and expiry (Admin Only).
-* **DELETE** `/api/Medicines/{id}`: Removes a medicine record from the system (Admin Only).
+The API is secured using JWT Authentication. Below is a summary of available endpoints, their access levels, and descriptions.
 
-## *Category Management:*
-* 
-* **GET** `/api/Categories`: Retrieves all available categories for organization.
-* **POST** `/api/Categories`: Creates a new medicine category (Admin Only).
-* **PUT** `/api/Categories/{id}`: Modifies the details of an existing category (Admin Only).
-* **DELETE** `/api/Categories/{id}`: Permanently deletes a medicine category (Admin Only).
+### **Authentication & Accounts**
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/Auth/register` | Public | Register a new user account (Admin or Pharmacist). |
+| `POST` | `/api/Auth/login` | Public | Authenticate and receive a JWT token. |
+| `GET` | `/api/Auth/users` | Admin | Retrieve a list of all registered users. |
+| `PUT` | `/api/Auth/update` | Any Logged-in User | Update own credentials (username/password). |
+| `DELETE` | `/api/Auth/delete/{id}` | Admin | Permanently delete a user account. |
 
-## *Sales & Transactions:*
-  
-* **POST** `/api/Sales`: Processes new sales transactions with **Automatic Stock Deduction**.
-* **GET** `/api/Sales`: Retrieves the complete historical log of all processed sales(Pharmacist, Admin).
-* **GET** `/api/Sales/{id}`: Fetches specific transaction details, including individual items sold(Pharmacist, Admin).
-* **PUT** `/api/Sales/{id}`: Updates existing sales records for corrections (Admin Only).
-* **DELETE** `/api/Sales/{id}`: Deletes a sale and automatically **restores the medicine stock**(Admin Only).
+### **Medicine Inventory**
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/Medicines` | Pharmacist, Admin | List all medicines (Supports Pagination, Search, Sort). |
+| `GET` | `/api/Medicines/{id}` | Pharmacist, Admin | Get details of a specific medicine. |
+| `POST` | `/api/Medicines` | Admin | Add a new medicine to inventory. |
+| `PUT` | `/api/Medicines/{id}` | Admin | Update general medicine details (Price, Name, etc.). |
+| `PATCH` | `/api/Medicines/{id}/stock` | Admin | Quickly update stock quantity only. |
+| `DELETE` | `/api/Medicines/{id}` | Admin | Remove a medicine from the system. |
 
-## User Profile & Media:
+### **Sales & Transactions**
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/Sales` | Pharmacist, Admin | Process a new sale (triggers auto-stock deduction). |
+| `GET` | `/api/Sales` | Pharmacist, Admin | View sales history (Supports Pagination). |
+| `GET` | `/api/Sales/{id}` | Pharmacist, Admin | View specific transaction details and items. |
+| `PUT` | `/api/Sales/{id}` | Admin | Update an existing sale record (Restores & Re-deducts stock). |
+| `DELETE` | `/api/Sales/{id}` | Admin | Void/Delete a sale (Automatically restores stock). |
 
-* **POST** `/api/Users/upload-photo`: Securely uploads a profile image (Supports JPG, JPEG, PNG up to 2MB)(Pharmacist, Admin).
-  
----
+### **Categories & Profile**
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/Categories` | Pharmacist, Admin | List all medicine categories. |
+| `POST` | `/api/Categories` | Admin | Create a new category. |
+| `PUT` | `/api/Categories/{id}` | Admin | Update an existing category. |
+| `DELETE` | `/api/Categories/{id}` | Admin | Delete a category. |
+| `POST` | `/api/Users/upload-photo` | Any Logged-in User | Upload a profile picture (Max 2MB, Images only). |
+
 
 ## Setup Instructions
 Follow these steps to set up and run the project locally.
@@ -159,7 +156,6 @@ Visual Studio or VS Code
 git clone [https://github.com/jamesian-bayonas/pharmalink.git](https://github.com/jamesian-bayonas/pharmalink.git)
 cd pharmalink
 ```
----
 
 ## 2. Database Configuration
 
@@ -170,15 +166,12 @@ Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* in
 ```json
 "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PharmaLinkDB;Trusted_Connection=True;TrustServerCertificate=True;"
 ```
----
 
 ## 3. Initialize Database
 1. Open SQL Server Management Studio (SSMS).
 2. Copy the SQL Creation Scripts provided in the section above.
 3. Execute the scripts to generate the database and required tables.
 4. Run the Application
-
----
 
 ## 4 Run the Application
 
@@ -189,7 +182,6 @@ dotnet restore
 dotnet run
 
 ```
----
 
 ## 5. Access the API
 
