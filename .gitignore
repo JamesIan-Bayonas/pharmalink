@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Ignore appsettings files
+appsettings.json
+appsettings.Development.json   
+
 # User-specific files
 *.rsuser
 *.suo
@@ -16,7 +20,7 @@
 # Mono auto generated files
 mono_crash.*
 
-# Build results
+# Build results	
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
