@@ -39,15 +39,15 @@ namespace PharmaLink.API.Repositories
             using var transaction = connection.BeginTransaction();
             try
             {
-                // 1. Insert Sale Header and get the new ID
+                // Insert Sale Header and get the new ID
                 string saleSql = @"
                         INSERT INTO Sales (UserId, TotalAmount, TransactionDate) 
-                        VALUES (@UserId, @TotalAmount, @TransDate);
+                        VALUES (@UserId, @TotalAmount, GETDATE);
                         SELECT CAST(SCOPE_IDENTITY() as int);";
 
                 int newSaleId = await connection.QuerySingleAsync<int>(saleSql, sale, transaction);
 
-                // 2. Process Items
+                // Process Items
                 foreach (var item in items)
                 {
                     item.SaleId = newSaleId;
@@ -59,7 +59,7 @@ namespace PharmaLink.API.Repositories
 
                     await connection.ExecuteAsync(itemSql, item, transaction);
 
-                    // 3. Update Inventory (Deduct Stock)
+                    // Update Inventory
                     string stockSql = @"
                             UPDATE Medicines 
                             SET StockQuantity = StockQuantity - @Quantity 
@@ -68,12 +68,12 @@ namespace PharmaLink.API.Repositories
                     await connection.ExecuteAsync(stockSql, new { item.Quantity, item.MedicineId }, transaction);
                 }
 
-                transaction.Commit(); // Save changes
+                transaction.Commit();
                 return newSaleId;
             }
             catch (Exception)
             {
-                transaction.Rollback(); // Undo everything if error
+                transaction.Rollback(); 
                 throw;
             }
         }
@@ -93,20 +93,17 @@ namespace PharmaLink.API.Repositories
             using var transaction = connection.BeginTransaction();
             try
             {
-                // 1. GET OLD ITEMS (To know what to put back on shelf)
+                // GET OLD ITEMS (To know what to put back on shelf)
                 string getItemsSql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
                 var oldItems = await connection.QueryAsync<SaleItem>(getItemsSql, new { SaleId = saleId }, transaction);
 
-                // 2. RESTORE STOCK (Reverse the sale)
+                // RESTORE STOCK (Reverse the sale)
                 string restoreStockSql = "UPDATE Medicines SET StockQuantity = StockQuantity + @Quantity WHERE Id = @MedicineId";
                 foreach (var item in oldItems)
                 {
                     await connection.ExecuteAsync(restoreStockSql, new { item.Quantity, item.MedicineId }, transaction);
                 }
 
-                // 3. DELETE SALE (Cascade will handle SalesItems, but let's delete Parent)
-                // Note: Ensure your SQL Cascade is set, or manually delete SalesItems here first.
-                // Assuming Cascade is ON from previous steps:
                 string deleteSql = "DELETE FROM Sales WHERE Id = @SaleId";
                 int rows = await connection.ExecuteAsync(deleteSql, new { SaleId = saleId }, transaction);
 
@@ -127,7 +124,6 @@ namespace PharmaLink.API.Repositories
             using var transaction = connection.BeginTransaction();
             try
             {
-                // 1. REVERSE OLD SALE (Restore Stock)
                 var oldItems = await connection.QueryAsync<SaleItem>("SELECT * FROM SalesItems WHERE SaleId = @SaleId", new { SaleId = saleId }, transaction);
                 foreach (var item in oldItems)
                 {
@@ -136,10 +132,8 @@ namespace PharmaLink.API.Repositories
                         new { item.Quantity, item.MedicineId }, transaction);
                 }
 
-                // 2. CLEAR OLD ITEMS
                 await connection.ExecuteAsync("DELETE FROM SalesItems WHERE SaleId = @SaleId", new { SaleId = saleId }, transaction);
 
-                // 3. PROCESS NEW ITEMS (Deduct Stock & Insert)
                 foreach (var item in newItems)
                 {
                     item.SaleId = saleId; // Link to existing ID
@@ -156,7 +150,6 @@ namespace PharmaLink.API.Repositories
                         item, transaction);
                 }
 
-                // 4. UPDATE HEADER (Total Amount & Date)
                 string updateHeaderSql = @" 
                     UPDATE Sales 
                     SET TotalAmount = @TotalAmount, 
@@ -183,7 +176,10 @@ namespace PharmaLink.API.Repositories
         public async Task<(IEnumerable<Sale>, int)> GetAllPagedAsync(SalesParams parameters)
         {
             using var connection = new SqlConnection(_connectionString);
-            var sqlBuilder = new StringBuilder("SELECT * FROM Sales WHERE 1=1 ");
+            var sqlBuilder = new StringBuilder(@"
+                SELECT Id, UserId, TotalAmount, TransactionDate AS TransDate 
+                FROM Sales WHERE 1=1 ");
+
             var dbParams = new DynamicParameters();
 
             if (parameters.StartDate.HasValue)
@@ -192,9 +188,11 @@ namespace PharmaLink.API.Repositories
                 dbParams.Add("Start", parameters.StartDate);
             }
 
-            // Get Total Count for metadata
-            string countSql = sqlBuilder.ToString().Replace("SELECT *", "SELECT COUNT(*)");
-            int totalCount = await connection.ExecuteScalarAsync<int>(countSql, dbParams);
+            string countSql = $"SELECT COUNT(*) FROM Sales WHERE 1=1 {sqlBuilder.ToString().Substring(sqlBuilder.ToString().IndexOf("WHERE") + 10)}";
+            string countSqlRaw = sqlBuilder.ToString();
+            string countSqlFinal = "SELECT COUNT(*) " + countSqlRaw.Substring(countSqlRaw.IndexOf("FROM"));
+
+            int totalCount = await connection.ExecuteScalarAsync<int>(countSqlFinal, dbParams);
 
             // Apply Pagination
             sqlBuilder.Append(" ORDER BY TransactionDate DESC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
