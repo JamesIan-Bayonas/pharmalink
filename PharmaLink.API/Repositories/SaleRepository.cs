@@ -42,7 +42,7 @@ namespace PharmaLink.API.Repositories
                 // Insert Sale Header and get the new ID
                 string saleSql = @"
                         INSERT INTO Sales (UserId, TotalAmount, TransactionDate) 
-                        VALUES (@UserId, @TotalAmount, GETDATE);
+                        VALUES (@UserId, @TotalAmount, GETDATE());
                         SELECT CAST(SCOPE_IDENTITY() as int);";
 
                 int newSaleId = await connection.QuerySingleAsync<int>(saleSql, sale, transaction);
