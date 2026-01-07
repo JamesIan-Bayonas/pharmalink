@@ -14,42 +14,52 @@ namespace PharmaLink.API.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
 
-            // We run multiple queries in one go for speed
-            string sql = @"
-                -- 1. Revenue & Sales Count (Today)
-                SELECT 
-                    ISNULL(SUM(TotalAmount), 0) as TotalRevenue, 
-                    COUNT(Id) as SalesCount 
-                FROM Sales 
+            // Group sales by date for the last 7 days
+            var sql = @"
+                
+                -- 1. Total Revenue Today
+                SELECT ISNULL(SUM(TotalAmount), 0) FROM Sales 
                 WHERE CAST(TransactionDate AS DATE) = CAST(GETDATE() AS DATE);
 
-                -- 2. Low Stock (Less than 10)
-                SELECT COUNT(*) FROM Medicines WHERE StockQuantity < 10;
+                -- 2. Transactions Today
+                SELECT COUNT(*) FROM Sales 
+                WHERE CAST(TransactionDate AS DATE) = CAST(GETDATE() AS DATE);
 
-                -- 3. Expiring Soon (Next 90 days)
-                SELECT COUNT(*) FROM Medicines 
-                WHERE ExpiryDate <= DATEADD(day, 90, GETDATE()) 
-                AND ExpiryDate >= GETDATE();
+                -- 3. Low Stock Items
+                SELECT COUNT(*) FROM Medicines WHERE StockQuantity <= 10;
 
-                -- 4. Total Medicines
-                SELECT COUNT(*) FROM Medicines;";
+                -- 4. Expiring Soon Items (90 Days)
+                SELECT COUNT(*) FROM Medicines WHERE ExpiryDate <= DATEADD(day, 90, GETDATE());
 
+                -- 5. Total Medicines
+                SELECT COUNT(*) FROM Medicines;
+
+                -- 6. NEW: Weekly Sales Trend (Last 7 Days)
+                SELECT 
+                    FORMAT(TransactionDate, 'ddd') as DateLabel, -- Returns 'Mon', 'Tue'
+                    SUM(TotalAmount) as TotalAmount
+                FROM Sales
+                WHERE TransactionDate >= DATEADD(day, -6, CAST(GETDATE() AS DATE))
+                GROUP BY CAST(TransactionDate AS DATE), FORMAT(TransactionDate, 'ddd')
+                ORDER BY CAST(TransactionDate AS DATE);
+            ";
+
+            await connection.OpenAsync();
             using var multi = await connection.QueryMultipleAsync(sql);
 
-            // Read the results in order
-            var salesData = await multi.ReadFirstAsync(); // dynamic object
-            int lowStock = await multi.ReadSingleAsync<int>();
-            int expiring = await multi.ReadSingleAsync<int>();
-            int totalMeds = await multi.ReadSingleAsync<int>();
-
-            return new DashboardStatsDto
+            var stats = new DashboardStatsDto
             {
-                TotalRevenueToday = (decimal)salesData.TotalRevenue,
-                TotalSalesToday = (int)salesData.SalesCount,
-                LowStockItems = lowStock,
-                ExpiringSoonItems = expiring,
-                TotalMedicines = totalMeds
+                TotalRevenueToday = await multi.ReadSingleAsync<decimal>(),
+                TotalSalesToday = await multi.ReadSingleAsync<int>(),
+                LowStockItems = await multi.ReadSingleAsync<int>(),
+                ExpiringSoonItems = await multi.ReadSingleAsync<int>(),
+                TotalMedicines = await multi.ReadSingleAsync<int>()
             };
+
+            // Read the list for the chart
+            stats.WeeklySales = (await multi.ReadAsync<SalesTrendDto>()).ToList();
+
+            return stats;
         }
     }
 }
