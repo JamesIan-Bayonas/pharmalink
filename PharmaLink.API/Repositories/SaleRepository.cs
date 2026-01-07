@@ -85,6 +85,7 @@ namespace PharmaLink.API.Repositories
             string sql = "SELECT * FROM SalesItems WHERE SaleId = @SaleId";
             return await connection.QueryAsync<SaleItem>(sql, new { SaleId = saleId });
         }
+
         public async Task<bool> DeleteSaleTransactionAsync(int saleId)
         {
             using var connection = new SqlConnection(_connectionString);
@@ -103,6 +104,9 @@ namespace PharmaLink.API.Repositories
                 {
                     await connection.ExecuteAsync(restoreStockSql, new { item.Quantity, item.MedicineId }, transaction);
                 }
+
+                string deleteItemsSql = "DELETE FROM SalesItems WHERE SaleId = @SaleId";
+                await connection.ExecuteAsync(deleteItemsSql, new { SaleId = saleId }, transaction);
 
                 string deleteSql = "DELETE FROM Sales WHERE Id = @SaleId";
                 int rows = await connection.ExecuteAsync(deleteSql, new { SaleId = saleId }, transaction);

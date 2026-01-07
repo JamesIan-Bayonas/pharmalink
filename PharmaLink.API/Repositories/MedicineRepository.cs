@@ -4,6 +4,7 @@ using PharmaLink.API.DTOs.Medicines;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using System.Data;
+using System.Text;
 
 namespace PharmaLink.API.Repositories
 {
@@ -141,6 +142,46 @@ namespace PharmaLink.API.Repositories
 
             var rows = await connection.ExecuteAsync(sql, new { Id = id });
             return rows > 0;
+        }
+
+        public async Task<(IEnumerable<Medicine>, int)> GetAllPagedAsync(MedicineParams parameters)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            var sqlBuilder = new StringBuilder("SELECT * FROM Medicines WHERE 1=1 ");
+            var dbParams = new DynamicParameters();
+
+            if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
+            {
+                sqlBuilder.Append(" AND Name LIKE @Search");
+                dbParams.Add("Search", $"%{parameters.SearchTerm}%");
+            }
+
+            // --- NEW FILTER LOGIC START ---
+            if (!string.IsNullOrWhiteSpace(parameters.Filter))
+            {
+                if (parameters.Filter.ToLower() == "low")
+                {
+                    sqlBuilder.Append(" AND StockQuantity <= 10"); // Matches Dashboard Logic
+                }
+                else if (parameters.Filter.ToLower() == "expiring")
+                {
+                    // 90 Days expiry threshold
+                    sqlBuilder.Append(" AND ExpiryDate <= DATEADD(day, 90, GETDATE())");
+                }
+            }
+            // --- NEW FILTER LOGIC END ---
+
+            // Count Total (for pagination)
+            string countSql = $"SELECT COUNT(*) FROM Medicines WHERE 1=1 {sqlBuilder.ToString().Substring(sqlBuilder.ToString().IndexOf("WHERE") + 10)}";
+            int totalCount = await connection.ExecuteScalarAsync<int>(countSql, dbParams);
+
+            // Apply Sorting & Pagination
+            sqlBuilder.Append(" ORDER BY Name ASC OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
+            dbParams.Add("Offset", (parameters.PageNumber - 1) * parameters.PageSize);
+            dbParams.Add("PageSize", parameters.PageSize);
+
+            var items = await connection.QueryAsync<Medicine>(sqlBuilder.ToString(), dbParams);
+            return (items, totalCount);
         }
     }
 }

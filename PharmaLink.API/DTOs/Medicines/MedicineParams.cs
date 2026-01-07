@@ -20,5 +20,6 @@
         // 3. SORTING
         // Options: "name", "price", "price_desc", "expiry"
         public string? SortBy { get; set; }
+        public string? Filter { get; set; }
     }
 }
