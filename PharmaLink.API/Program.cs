@@ -17,6 +17,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
+builder.Services.AddCors(options =>     
+{                                       
+    options.AddPolicy("AllowReactApp",  
+        builder => builder              
+            .WithOrigins("http://localhost:5173", "http://localhost:5000") // NOTE:: Update this port if your React app uses a different one
+            .AllowAnyMethod()           
+            .AllowAnyHeader());         
+});
+
 // Configure Swagger to allow JWT Input
 builder.Services.AddSwaggerGen(c =>
 {
@@ -82,20 +91,15 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// Pipeline Configuration
-if (app.Environment.IsDevelopment())
-{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
-
 app.UseMiddleware<ExceptionMiddleware>();
 
-app.UseHttpsRedirection();
-
+app.UseHttpsRedirection();  
 app.UseStaticFiles();
 
-// Authentication must come BEFORE Authorization
+app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
