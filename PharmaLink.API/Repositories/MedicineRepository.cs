@@ -37,53 +37,64 @@ namespace PharmaLink.API.Repositories
         {
             using var connection = new SqlConnection(_connectionString);
 
-            // 1. Start building the query
-            // We use "WHERE 1=1" trick so we can easily append "AND ..." later
+            // Start building the query
             var sqlBuilder = new System.Text.StringBuilder("SELECT * FROM Medicines WHERE 1=1 ");
-            var countBuilder = new System.Text.StringBuilder("SELECT COUNT(*) FROM Medicines WHERE 1=1 ");
 
-            // 2. Dynamic Filtering (Search)
-            // We use DynamicParameters to safely add values
+            // We need to build the Count query identically to ensure pagination is correct
+            // Note: We construct the WHERE clause first, then append it to count later to avoid duplication code
+
             var dbParams = new DynamicParameters();
 
+            // Dynamic Filtering (Search)
             if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
             {
-                // Filter both the Data Query and the Count Query
                 sqlBuilder.Append(" AND Name LIKE @SearchTerm");
-                countBuilder.Append(" AND Name LIKE @SearchTerm");
                 dbParams.Add("SearchTerm", $"%{parameters.SearchTerm}%");
             }
 
             if (parameters.CategoryId.HasValue)
             {
                 sqlBuilder.Append(" AND CategoryId = @CategoryId");
-                countBuilder.Append(" AND CategoryId = @CategoryId");
                 dbParams.Add("CategoryId", parameters.CategoryId.Value);
             }
 
-            // 3. Dynamic Sorting
-            // We whitelist columns to prevent SQL Injection (Cannot use @Params for column names)
+            if (!string.IsNullOrWhiteSpace(parameters.Filter))
+            {
+                if (parameters.Filter.ToLower() == "low")
+                {
+                    sqlBuilder.Append(" AND StockQuantity <= 10");
+                }
+                else if (parameters.Filter.ToLower() == "expiring")
+                {
+                    // 90 Days expiry threshold
+                    sqlBuilder.Append(" AND ExpiryDate <= DATEADD(day, 90, GETDATE())");
+                }
+            }
+
+            // Dynamic Sorting
             string sortQuery = parameters.SortBy?.ToLower() switch
             {
                 "price" => "ORDER BY Price ASC",
                 "price_desc" => "ORDER BY Price DESC",
                 "expiry" => "ORDER BY ExpiryDate ASC",
                 "name_desc" => "ORDER BY Name DESC",
-                _ => "ORDER BY Name ASC" // Default Sort
+                _ => "ORDER BY Name ASC"
             };
 
-            sqlBuilder.Append($" {sortQuery}");
+            // 4. Prepare Count Query (Must match the WHERE clause of data query)
+            // We extract the "WHERE..." part from sqlBuilder to ensure Count matches Data
+            string whereClause = sqlBuilder.ToString().Substring(sqlBuilder.ToString().IndexOf("WHERE"));
+            string countSql = $"SELECT COUNT(*) FROM Medicines {whereClause}";
 
-            // 4. Pagination (OFFSET and FETCH)
+            // 5. Append Sort and Pagination to Data Query
+            sqlBuilder.Append($" {sortQuery}");
             sqlBuilder.Append(" OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY");
+
             dbParams.Add("Offset", (parameters.PageNumber - 1) * parameters.PageSize);
             dbParams.Add("PageSize", parameters.PageSize);
 
-            // 5. Execute Queries
-            // We run the Count query first to know the total items matching the filter
-            int totalCount = await connection.ExecuteScalarAsync<int>(countBuilder.ToString(), dbParams);
-
-            // Then we run the Data query to get the specific page of items
+            // 6. Execute Queries
+            int totalCount = await connection.ExecuteScalarAsync<int>(countSql, dbParams);
             var items = await connection.QueryAsync<Medicine>(sqlBuilder.ToString(), dbParams);
 
             return (items, totalCount);
