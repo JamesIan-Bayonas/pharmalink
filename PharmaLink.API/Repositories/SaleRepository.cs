@@ -188,6 +188,14 @@ namespace PharmaLink.API.Repositories
                 dbParams.Add("Start", parameters.StartDate);
             }
 
+            if (parameters.EndDate.HasValue)
+            {
+                // We add 1 day to include the full end day (since dates usually have 00:00:00 time)
+                // OR just use strictly if you send time. Usually for reports, we want up to the end of that day.
+                sqlBuilder.Append(" AND TransactionDate < @End");
+                dbParams.Add("End", parameters.EndDate.Value.AddDays(1));
+            }
+
             string countSql = $"SELECT COUNT(*) FROM Sales WHERE 1=1 {sqlBuilder.ToString().Substring(sqlBuilder.ToString().IndexOf("WHERE") + 10)}";
             string countSqlRaw = sqlBuilder.ToString();
             string countSqlFinal = "SELECT COUNT(*) " + countSqlRaw.Substring(countSqlRaw.IndexOf("FROM"));
