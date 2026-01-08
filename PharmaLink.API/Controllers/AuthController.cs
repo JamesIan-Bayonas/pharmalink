@@ -21,6 +21,50 @@ namespace PharmaLink.API.Controllers
             _mapper = mapper;
         }
 
+        [HttpGet("me")]
+        [Authorize] // Requires Login
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                // Get User ID from the Token
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
+                if (userIdClaim == null) return Unauthorized();
+
+                int userId = int.Parse(userIdClaim.Value);
+
+                // Fetch fresh data from Database (NOT the token)
+                var userDto = await _authService.GetCurrentUserAsync(userId);
+
+                if (userDto == null) return NotFound();
+
+                return Ok(userDto);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("users/{id}")]
+        [AdminGuard("Admin Only")] // Security: Only Admins can access
+        public async Task<IActionResult> UpdateUserAsAdmin(int id, [FromBody] UserUpdateDto request)
+        {
+            try
+            {
+                // Check if user exists by calling AuthService.UpdateUserAsync with the ID from the URL, not the token.
+                var success = await _authService.UpdateUserAsync(id, request);
+
+                if (!success) return BadRequest(new { message = "Failed to update user." });
+
+                return Ok(new { message = "User updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterDto request)
         {

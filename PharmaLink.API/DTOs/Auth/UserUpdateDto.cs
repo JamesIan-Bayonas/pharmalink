@@ -9,5 +9,6 @@ namespace PharmaLink.API.DTOs.Auth
 
         [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
         public string? Password { get; set; } // Optional: Leave null if not changing
+        public string? Role { get; set; }
     }
 }

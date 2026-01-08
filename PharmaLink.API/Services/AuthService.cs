@@ -4,11 +4,21 @@ using PharmaLink.API.DTOs.Users;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
+using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
 {
     public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService 
     {
+
+        public async Task<UserResponseDto> GetCurrentUserAsync(int userId)
+        {
+            var user = await userRepository.GetByIdAsync(userId);
+            if (user == null) return null;
+
+            return mapper.Map<UserResponseDto>(user);
+        }
+
         public async Task<string> RegisterAsync(User user, string password, string role)
         {
             // Check if user exists
@@ -45,9 +55,9 @@ namespace PharmaLink.API.Services
             // Generate JWT Token
             return tokenService.GenerateToken(user);
         }
-        public async Task<bool> UpdateUserAsync(int id, UserUpdateDto request)
+        public async Task<bool> UpdateUserAsync(int userId, UserUpdateDto request)
         {
-            var user = await userRepository.GetByIdAsync(id);
+            var user = await userRepository.GetByIdAsync(userId);
             if (user == null) return false;
 
             user.UserName = request.Username;
@@ -57,7 +67,14 @@ namespace PharmaLink.API.Services
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             }
 
-            // Save changes via Repository
+            // 3. Update Role (Only if provided AND not null)
+            // This prevents "My Profile" (which sends null Role) from wiping the user's role
+            if (!string.IsNullOrEmpty(request.Role))
+            {
+                user.Role = request.Role;
+            }
+
+            // 4. Save to Database
             return await userRepository.UpdateAsync(user);
         }
 

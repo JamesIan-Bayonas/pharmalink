@@ -11,7 +11,7 @@ namespace PharmaLink.API.Interfaces.ServiceInterface
         Task<string>? LoginAsync(string username, string password); // Returns JWT Token
         Task<bool> UpdateUserAsync(int id, UserUpdateDto request);
         Task<bool> DeleteUserAsync(int id);
-
         Task<IEnumerable<UserResponseDto>> GetAllUsersAsync();
+        Task<UserResponseDto> GetCurrentUserAsync(int userId);
     }
 }

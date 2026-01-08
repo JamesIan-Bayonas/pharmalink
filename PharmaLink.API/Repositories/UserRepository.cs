@@ -51,7 +51,8 @@
                 UPDATE Users 
                 SET UserName = @UserName, 
                 PasswordHash = @PasswordHash,
-                ProfileImagePath = @ProfileImagePath
+                ProfileImagePath = @ProfileImagePath,
+                Role = @Role
                 WHERE Id = @Id";
             var rows = await connection.ExecuteAsync(sql, user);
             return rows > 0;
