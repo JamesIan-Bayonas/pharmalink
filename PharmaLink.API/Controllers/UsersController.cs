@@ -32,9 +32,12 @@ namespace PharmaLink.API.Controllers
 
             try
             {
-                // Get path to wwwroot/uploads
-                string webRootPath = environment.WebRootPath ?? environment.ContentRootPath;
-                string uploadsFolder = Path.Combine(webRootPath, "wwwroot", "uploads");
+                // Determine the correct root path. 
+                // environment.WebRootPath usually points to ".../wwwroot". 
+                string webRootPath = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
+
+                // Now we simply append "uploads" (avoiding the "wwwroot/wwwroot" duplication)
+                string uploadsFolder = Path.Combine(webRootPath, "uploads");
 
                 // Create folder if it doesn't exist
                 if (!Directory.Exists(uploadsFolder))
