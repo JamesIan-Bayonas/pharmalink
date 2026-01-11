@@ -25,6 +25,8 @@ This project implements all requirements specified in the Final Project guidelin
 * **Error Handling:** Global Exception M    iddleware for consistent error responses.
 * **Documentation:** Swagger UI integrated for API testing.
 
+![API documentation](./api-documentation)
+
 ## Tech Stack
 * **Framework:** ASP.NET Core 8.0 Web API
 * **Language:** C#
