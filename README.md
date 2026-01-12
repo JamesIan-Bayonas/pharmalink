@@ -25,6 +25,8 @@ This project implements all requirements specified in the Final Project guidelin
 * **Error Handling:** Global Exception M    iddleware for consistent error responses.
 * **Documentation:** Swagger UI integrated for API testing.
 
+![API documentation](./api-documentation)
+
 ## Tech Stack
 * **Framework:** ASP.NET Core 8.0 Web API
 * **Language:** C#
@@ -46,59 +48,88 @@ The database consists of 5 main entities:
 *Run these scripts in SQL Server Management Studio (SSMS) to set up the database.*
 
 ```sql
-CREATE DATABASE PharmaLinkDB;
-GO
-USE PharmaLinkDB;
+USE [master]
 GO
 
-CREATE TABLE Users (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserName NVARCHAR(100) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(MAX) NOT NULL,
-    Role NVARCHAR(50) NOT NULL, -- 'Admin', 'Pharmacist'
-    ProfileImagePath NVARCHAR(MAX) NULL,
-    CreatedAt DATETIME DEFAULT GETDATE()
-);
-
-CREATE TABLE Categories (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Name NVARCHAR(100) NOT NULL
-);
-
-CREATE TABLE Medicines (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    CategoryId INT NOT NULL FOREIGN KEY REFERENCES Categories(Id),
-    Description NVARCHAR(500) NULL,
-    Name NVARCHAR(200) NOT NULL,
-    StockQuantity INT NOT NULL DEFAULT 0,
-    Price DECIMAL(18,2) NOT NULL,
-    ExpiryDate DATETIME NOT NULL
-);
-
-CREATE TABLE Sales (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL FOREIGN KEY REFERENCES Users(Id),
-    TotalAmount DECIMAL(18,2) NOT NULL,
-    TransactionDate DATETIME NOT NULL DEFAULT GETDATE()
-);
-
-CREATE TABLE SalesItems (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    SaleId INT NOT NULL FOREIGN KEY REFERENCES Sales(Id) ON DELETE CASCADE,
-    MedicineId INT NOT NULL FOREIGN KEY REFERENCES Medicines(Id) ON DELETE CASCADE,
-    Quantity INT NOT NULL,
-    UnitPrice DECIMAL(18,2) NOT NULL
-);
+IF EXISTS (SELECT name FROM sys.databases WHERE name = N'PharmaLinkDB')
+BEGIN
+    ALTER DATABASE [PharmaLinkDB] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [PharmaLinkDB];
+END
 GO
 
-SET IDENTITY_INSERT Categories ON;
-INSERT INTO Categories (Id, Name) VALUES 
-(1, 'Antibiotics'), (2, 'Analgesics'), (3, 'Antihistamines'), 
-(4, 'Vitamins'), (5, 'Antacids'), (6, 'Category 6');
-SET IDENTITY_INSERT Categories OFF;
+CREATE DATABASE [PharmaLinkDB]
+GO
+
+USE [PharmaLinkDB]
+GO
+
+CREATE TABLE [dbo].[Categories](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [Name] [nvarchar](100) NOT NULL
+)
+GO
+
+CREATE TABLE [dbo].[Users](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [UserName] [nvarchar](100) NOT NULL,
+    [PasswordHash] [nvarchar](255) NOT NULL,
+    [Role] [nvarchar](50) NOT NULL,
+    [CreatedAt] [datetime] DEFAULT GETDATE(),
+    [ProfileImagePath] [nvarchar](255) NULL
+)
+GO
+
+CREATE TABLE [dbo].[Medicines](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [CategoryId] [int] NOT NULL,
+    [Name] [nvarchar](200) NOT NULL,
+    [StockQuantity] [int] NOT NULL DEFAULT 0,
+    [Price] [decimal](18, 2) NOT NULL,
+    [ExpiryDate] [datetime] NOT NULL,
+    [Description] [nvarchar](500) NULL,
+    FOREIGN KEY([CategoryId]) REFERENCES [dbo].[Categories] ([Id]) ON DELETE CASCADE
+)
+GO
+
+CREATE TABLE [dbo].[Sales](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [UserId] [int] NOT NULL,
+    [TotalAmount] [decimal](18, 2) NOT NULL,
+    [TransactionDate] [datetime] DEFAULT GETDATE(),
+    FOREIGN KEY([UserId]) REFERENCES [dbo].[Users] ([Id])
+)
+GO
+
+CREATE TABLE [dbo].[SalesItems](
+    [Id] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    [SaleId] [int] NOT NULL,
+    [MedicineId] [int] NOT NULL,
+    [Quantity] [int] NOT NULL,
+    [UnitPrice] [decimal](18, 2) NOT NULL,
+    FOREIGN KEY([SaleId]) REFERENCES [dbo].[Sales] ([Id]) ON DELETE CASCADE,
+    FOREIGN KEY([MedicineId]) REFERENCES [dbo].[Medicines] ([Id]) ON DELETE CASCADE
+)
+GO
+
+SET IDENTITY_INSERT [dbo].[Categories] ON 
+INSERT INTO [dbo].[Categories] ([Id], [Name]) VALUES 
+(1, 'Antibiotics'), 
+(2, 'Analgesics'), 
+(3, 'Antihistamines'), 
+(4, 'Vitamins'), 
+(5, 'Antacids'), 
+(6, 'First Aid');
+SET IDENTITY_INSERT [dbo].[Categories] OFF
+GO
+
+SET IDENTITY_INSERT [dbo].[Users] ON
+INSERT INTO [dbo].[Users] ([Id], [UserName], [PasswordHash], [Role], [ProfileImagePath]) VALUES 
+(6, 'jack', '$2a$11$MPRv4l2Wggo32F2Vkb0YkOIARwPB42vETJdgHZVFXSQyt4wHhrzde', 'Admin', NULL),
+(1006, 'Calago', '$2a$11$divO2EIZKZKHIE8yananAeNOJyhdDtnjX8b6.x1LTbEaceblfmBIm', 'Pharmacist', NULL);
+SET IDENTITY_INSERT [dbo].[Users] OFF
+GO
 ```
-
-Establishing your intent: You want to convert your list of API endpoints into a specific nested bullet-point structure that matches the style of your "Implemented Features" section for your `README.md` file.
 
 ## API Endpoints
 
@@ -180,7 +211,10 @@ Update the **ConnectionStrings:DefaultConnection** to match your *SQL Server* in
 1. Open SQL Server Management Studio (SSMS).
 2. Copy the SQL Creation Scripts provided in the section above.
 3. Execute the scripts to generate the database and required tables.
-4. Run the Application
+4. **(Crucial Step) Populate Seed Data:**
+   * To ensure the system has inventory to test, open the file `database/SampleData.sql` located in the root of this repository.
+   * Execute this script in SSMS.
+   * *This will automatically insert 10 Categories and 150+ Medicines so you can test the POS immediately.*
 
 ## 4 Run the Application
 
