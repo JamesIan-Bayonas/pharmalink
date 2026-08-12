@@ -58,7 +58,7 @@ This project implements a strict **Client-Server Architecture**.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 This project follows a **Feature-Based** directory structure for better scalability.
 
