@@ -33,9 +33,10 @@ export const getAllUsers = async (): Promise<UserResponse[]> => {
     const response = await api.get<UserResponse[]>('/Auth/Users'); 
     return response.data;
 };
-    
+
 export const deleteUser = async (id: number): Promise<void> => {
-    await api.delete(`/Auth/Users/${id}`);
+    // We target the 'Users' controller directly, not 'Auth'
+    await api.delete(`/Users/${id}`); 
 };
 
 // We use the Auth registration endpoint, but call it from inside the app

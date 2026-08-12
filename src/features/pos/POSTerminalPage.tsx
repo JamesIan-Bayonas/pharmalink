@@ -24,7 +24,7 @@ const PrinterIcon = () => (
 );
 
 const TrashIcon = () => (
-    <svg className="w-4 h-4 text-rose-500 hover:text-rose-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-3.5 h-3.5 text-rose-500 hover:text-rose-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
     </svg>
 );
@@ -65,11 +65,8 @@ const POSTerminalPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
-    
-    // State for the Receipt
     const [lastSale, setLastSale] = useState<ReceiptData | null>(null);
 
-    // Fetch Products
     useEffect(() => {
         const loadProducts = async () => {
             setLoading(true);
@@ -90,10 +87,8 @@ const POSTerminalPage = () => {
         }, 500);
 
         return () => clearTimeout(debounceTimer);
-        
     }, [searchTerm]);
 
-    // Auto print logic
     useEffect(() => {
         if (lastSale) {
             const timer = setTimeout(() => {
@@ -103,7 +98,6 @@ const POSTerminalPage = () => {
         }
     }, [lastSale]);
 
-    // Manage Cart
     const addToCart = (medicine: Medicine) => {
         setCart(prev => {
             const existing = prev.find(i => i.id === medicine.id);
@@ -138,7 +132,6 @@ const POSTerminalPage = () => {
 
     const grandTotal = cart.reduce((sum, item) => sum + (item.price * item.cartQuantity), 0);
 
-    // CHECKOUT
     const handleCheckout = async () => {
         if (cart.length === 0 || isProcessing) return;
         if (!window.confirm(`Confirm transaction payment of ₱${grandTotal.toFixed(2)}?`)) return;
@@ -156,7 +149,6 @@ const POSTerminalPage = () => {
                 date: new Date().toISOString(),
                 total: grandTotal, 
                 cashierName: user?.username || 'Staff',
-
                 items: cart.map(c => ({
                     name: c.name, 
                     qty: c.cartQuantity, 
@@ -168,7 +160,6 @@ const POSTerminalPage = () => {
             setLastSale(receiptData); 
             setCart([]); 
             setSearchTerm(''); 
-            
         } catch (error: any) {
             console.error("Checkout Error:", error);
             alert("Checkout Failed: " + (error.response?.data?.message || "Server unresponsive. Please check network."));
@@ -185,11 +176,7 @@ const POSTerminalPage = () => {
 
     return (
         <div className="flex flex-col lg:flex-row h-full min-h-[calc(100vh-140px)] gap-6 antialiased">
-            
-            {/* LEFT SIDE: CATALOG BROWSING AREA */}
             <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col min-w-0">
-                
-                {/* Search Bar */}
                 <div className="relative mb-6">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                         <SearchIcon />
@@ -209,7 +196,6 @@ const POSTerminalPage = () => {
                     )}
                 </div>
 
-                {/* Products Grid */}
                 <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
                     {loading && medicines.length === 0 ? (
                         <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400">
@@ -271,10 +257,7 @@ const POSTerminalPage = () => {
                 </div>
             </div>  
 
-            {/* RIGHT SIDE: LIVE CART LEDGER & CHECKOUT */}
             <div className="w-full lg:w-96 bg-slate-900 text-slate-100 p-6 rounded-2xl shadow-xl flex flex-col border border-slate-800">
-                
-                {/* Cart Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                     <div className="flex items-center gap-2.5">
                         <ShoppingBagIcon />
@@ -292,7 +275,6 @@ const POSTerminalPage = () => {
                     )}
                 </div>
 
-                {/* Cart Items List */}
                 <div className="flex-1 overflow-y-auto my-4 space-y-2.5 pr-1">
                     {cart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-slate-500 py-12 space-y-2">
@@ -311,7 +293,6 @@ const POSTerminalPage = () => {
                                 </div>
 
                                 <div className="flex items-center gap-3 shrink-0">
-                                    {/* Stepper Controls */}
                                     <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 p-0.5">
                                         <button 
                                             onClick={() => removeFromCart(item.id)}
@@ -332,16 +313,17 @@ const POSTerminalPage = () => {
                                         </button>
                                     </div>
 
-                                    {/* Total & Remove */}
                                     <div className="text-right space-y-0.5">
                                         <p className="font-extrabold text-sm text-emerald-400">
                                             ₱{(item.price * item.cartQuantity).toFixed(2)}
                                         </p>
                                         <button 
                                             onClick={() => deleteFromCart(item.id)}
-                                            className="text-[10px] text-slate-500 hover:text-rose-400 font-medium"
+                                            className="inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-rose-400 font-medium transition-colors"
+                                            title="Remove item"
                                         >
-                                            Remove
+                                            <TrashIcon />
+                                            <span>Remove</span>
                                         </button>
                                     </div>
                                 </div>
@@ -350,7 +332,6 @@ const POSTerminalPage = () => {
                     )}
                 </div>
 
-                {/* Cart Footer / Grand Total / Pay Trigger */}
                 <div className="pt-4 border-t border-slate-800 space-y-4">
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-slate-400 font-medium">
@@ -388,10 +369,8 @@ const POSTerminalPage = () => {
                         )}
                     </button>
                 </div>
-
             </div>
 
-            {/* Printable Receipt Offscreen Container */}
             <PrintableReceipt data={lastSale} />
         </div>
     );
