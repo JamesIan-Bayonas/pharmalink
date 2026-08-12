@@ -1,10 +1,67 @@
 import { useEffect, useState } from 'react';
 import { getSales, voidSale, type SaleResponse, type PaginationMeta } from '../../services/saleService';
-import { useAuth } from '../../context/AuthContext'; // Import Auth for Role Check
+import { useAuth } from '../../context/AuthContext';
 import PrintableReceipt, { type ReceiptData } from '../pos/PrintableReciept'; 
 
+// Native SVG Icons (Article VII Compliance - Zero External Dependencies)
+const CalendarIcon = () => (
+    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
+const ExportIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+);
+
+const EyeIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+);
+
+const VoidIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+    </svg>
+);
+
+const PrinterIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+    </svg>
+);
+
+const CloseIcon = () => (
+    <svg className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+const ChevronLeftIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+);
+
+const ChevronRightIcon = () => (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+);
+
+const Spinner = () => (
+    <svg className="w-6 h-6 animate-spin text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+);
+
 const SalesHistoryPage = () => {
-    const { user } = useAuth(); // Get current user
+    const { user } = useAuth();
 
     const [sales, setSales] = useState<SaleResponse[]>([]);
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
@@ -53,7 +110,7 @@ const SalesHistoryPage = () => {
         try {
             await voidSale(saleId);
             alert("Sale voided successfully. Inventory has been restored.");
-            fetchSales(); // Refresh table to remove the deleted item
+            fetchSales();
         } catch (error: any) {
             console.error("Void failed", error);
             alert("Failed to void sale: " + (error.response?.data?.message || "Unknown error"));
@@ -127,125 +184,255 @@ const SalesHistoryPage = () => {
     };
 
     return (
-        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
-            <header className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded shadow-sm gap-4">
+        <div className="space-y-6 antialiased flex flex-col min-h-[calc(100vh-140px)]">
+            
+            {/* HEADER & FILTER AUDIT HUB */}
+            <header className="flex flex-col xl:flex-row xl:items-center justify-between bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Sales History</h1>
-                    <p className="text-sm text-gray-500">Audit logs and past transactions</p>
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Audit History</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">Historical sales log, transaction receipts, and financial audit reports</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Filters */}
-                    <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded border">
-                        <div className="flex flex-col">
-                            <label className="text-[10px] uppercase font-bold text-gray-500">From</label>
-                            <input type="date" className="bg-white border rounded px-2 py-1 text-sm outline-none"
-                                value={startDate} onChange={(e) => { setStartDate(e.target.value); setPage(1); }} />
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+                    
+                    {/* Date Range Picker Group */}
+                    <div className="flex items-center gap-2 bg-slate-50/80 p-2 rounded-xl border border-slate-200/80">
+                        <div className="flex items-center gap-2">
+                            <CalendarIcon />
+                            <div className="flex flex-col">
+                                <label className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">From</label>
+                                <input 
+                                    type="date" 
+                                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-600"
+                                    value={startDate} 
+                                    onChange={(e) => { setStartDate(e.target.value); setPage(1); }} 
+                                />
+                            </div>
                         </div>
+
+                        <span className="text-slate-300 font-bold text-xs">to</span>
+
                         <div className="flex flex-col">
-                            <label className="text-[10px] uppercase font-bold text-gray-500">To</label>
-                            <input type="date" className="bg-white border rounded px-2 py-1 text-sm outline-none"
-                                value={endDate} onChange={(e) => { setEndDate(e.target.value); setPage(1); }} />
+                            <label className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">To</label>
+                            <input 
+                                type="date" 
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-blue-600"
+                                value={endDate} 
+                                onChange={(e) => { setEndDate(e.target.value); setPage(1); }} 
+                            />
                         </div>
+
                         {(startDate || endDate) && (
-                            <button onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }} className="ml-2 text-red-500 hover:text-red-700 text-xs font-bold">✕ Clear</button>
+                            <button 
+                                onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }} 
+                                className="ml-1 p-1 rounded-lg text-rose-500 hover:bg-rose-50 text-xs font-bold transition-all"
+                                title="Clear date filter"
+                            >
+                                ✕
+                            </button>
                         )}
                     </div>
 
-                    <button onClick={handleExport} disabled={isExporting} className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow-sm disabled:opacity-50 transition">
-                        <span>{isExporting ? 'Generating...' : 'Export Excel'}</span>
+                    {/* Export Action */}
+                    <button 
+                        onClick={handleExport} 
+                        disabled={isExporting} 
+                        className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 disabled:opacity-50 transition-all hover:-translate-y-0.5"
+                    >
+                        <ExportIcon />
+                        <span>{isExporting ? 'Generating CSV...' : 'Export Excel CSV'}</span>
                     </button>
                 </div>
             </header>
 
-            {/* Main Table */}
-            <div className="bg-white rounded shadow flex-1 overflow-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-gray-100 z-10">
-                        <tr className="text-gray-600 uppercase text-sm leading-normal">
-                            <th className="py-3 px-6">Receipt ID</th>
-                            <th className="py-3 px-6">Date & Time</th>
-                            <th className="py-3 px-6 text-center">Items</th>
-                            <th className="py-3 px-6 text-right">Total</th>
-                            <th className="py-3 px-6 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="text-gray-600 text-sm">
-                        {loading ? (
-                            <tr><td colSpan={5} className="text-center py-8">Loading records...</td></tr>
-                        ) : sales.length === 0 ? (
-                            <tr><td colSpan={5} className="text-center py-8">No sales found.</td></tr>
-                        ) : (
-                            sales.map((sale) => (
-                                <tr key={sale.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="py-3 px-6 font-medium">#{sale.id}</td>
-                                    <td className="py-3 px-6">{new Date(sale.transactionDate).toLocaleString()}</td>
-                                    <td className="py-3 px-6 text-center">
-                                        <span className="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs">{sale.items.length} items</span>
-                                    </td>
-                                    <td className="py-3 px-6 text-right font-bold text-gray-800">₱{sale.totalAmount.toFixed(2)}</td>
-                                    <td className="py-3 px-6 text-center space-x-4">
-                                        <button onClick={() => setSelectedSale(sale)} className="text-blue-600 hover:underline font-bold">View</button>
-                                        
-                                        {/* --- VOID BUTTON (Only for Admins) --- */}
-                                        {user?.role === 'Admin' && (
-                                            <button 
-                                                onClick={() => handleVoid(sale.id)}
-                                                className="text-red-500 hover:text-red-700 font-bold text-xs border border-red-200 bg-red-50 px-2 py-1 rounded"
-                                            >
-                                                VOID
-                                            </button>
-                                        )}
+            {/* MAIN TRANSACTION AUDIT TABLE */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex-1 flex flex-col justify-between">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
+                                <th className="py-3.5 px-6">Receipt ID</th>
+                                <th className="py-3.5 px-6">Transaction Date & Time</th>
+                                <th className="py-3.5 px-6 text-center">Dispensed Items</th>
+                                <th className="py-3.5 px-6 text-right">Total Amount</th>
+                                <th className="py-3.5 px-6 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-sm">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={5} className="py-16 text-center text-slate-400">
+                                        <div className="flex flex-col items-center justify-center gap-2">
+                                            <Spinner />
+                                            <p className="text-xs font-semibold">Loading Transaction Logs...</p>
+                                        </div>
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : sales.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="py-16 text-center text-slate-400">
+                                        <p className="text-sm font-medium">No sales transactions found matching your date range filter.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                sales.map((sale) => (
+                                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
+                                        {/* Receipt ID */}
+                                        <td className="py-3.5 px-6 font-mono font-bold text-slate-900">
+                                            #{sale.id}
+                                        </td>
+
+                                        {/* Date */}
+                                        <td className="py-3.5 px-6 text-slate-600 font-medium text-xs">
+                                            {new Date(sale.transactionDate).toLocaleString(undefined, { 
+                                                year: 'numeric', month: 'short', day: 'numeric', 
+                                                hour: '2-digit', minute: '2-digit' 
+                                            })}
+                                        </td>
+
+                                        {/* Items Count Badge */}
+                                        <td className="py-3.5 px-6 text-center">
+                                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+                                                {sale.items.length} {sale.items.length === 1 ? 'item' : 'items'}
+                                            </span>
+                                        </td>
+
+                                        {/* Total */}
+                                        <td className="py-3.5 px-6 text-right font-extrabold text-slate-900 text-base">
+                                            ₱{sale.totalAmount.toFixed(2)}
+                                        </td>
+
+                                        {/* Actions */}
+                                        <td className="py-3.5 px-6 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button 
+                                                    onClick={() => setSelectedSale(sale)} 
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all"
+                                                    title="View Transaction Details"
+                                                >
+                                                    <EyeIcon />
+                                                    <span>View</span>
+                                                </button>
+                                                
+                                                {user?.role === 'Admin' && (
+                                                    <button 
+                                                        onClick={() => handleVoid(sale.id)}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-all"
+                                                        title="Void Transaction and Restore Stock"
+                                                    >
+                                                        <VoidIcon />
+                                                        <span>Void</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* PAGINATION CONTROLS */}
+                {meta && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-slate-200/80 bg-slate-50/50 gap-3">
+                        <span className="text-xs font-semibold text-slate-500">
+                            Showing Page <span className="text-slate-900 font-bold">{meta.currentPage}</span> of{' '}
+                            <span className="text-slate-900 font-bold">{meta.totalPages}</span> ({meta.totalCount} total transactions)
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                            <button 
+                                disabled={meta.currentPage === 1} 
+                                onClick={() => setPage(p => p - 1)} 
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                            >
+                                <ChevronLeftIcon />
+                                <span>Previous</span>
+                            </button>
+
+                            <button 
+                                disabled={meta.currentPage === meta.totalPages || meta.totalPages === 0} 
+                                onClick={() => setPage(p => p + 1)} 
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-xs"
+                            >
+                                <span>Next</span>
+                                <ChevronRightIcon />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Pagination Controls */}
-            {meta && (
-                <div className="flex justify-between items-center bg-white p-4 rounded shadow-sm">
-                    <span className="text-gray-600 text-sm">Page {meta.currentPage} of {meta.totalPages} ({meta.totalCount} records)</span>
-                    <div className="space-x-2">
-                        <button disabled={meta.currentPage === 1} onClick={() => setPage(p => p - 1)} className="px-3 py-1 border rounded disabled:opacity-50">Previous</button>
-                        <button disabled={meta.currentPage === meta.totalPages} onClick={() => setPage(p => p + 1)} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
-                    </div>
-                </div>
-            )}
-
-            {/* Receipt Modal (Same as before) */}
+            {/* RECEIPT DETAIL INSPECTION MODAL */}
             {selectedSale && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white w-full max-w-md p-6 rounded-lg shadow-xl max-h-[90vh] flex flex-col">
-                        <div className="flex justify-between items-center mb-4 border-b pb-2">
-                            <h2 className="text-xl font-bold">Receipt #{selectedSale.id}</h2>
-                            <button onClick={() => setSelectedSale(null)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
+                    <div className="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                        
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">Transaction #{selectedSale.id}</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                    Cashier: Staff #{selectedSale.userId}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setSelectedSale(null)} 
+                                className="p-1 rounded-lg hover:bg-slate-100"
+                            >
+                                <CloseIcon />
+                            </button>
                         </div>
-                        <div className="text-sm text-gray-500 mb-4">Date: {new Date(selectedSale.transactionDate).toLocaleString()}</div>
-                        <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+
+                        <div className="text-xs font-semibold text-slate-500 my-3">
+                            Date: {new Date(selectedSale.transactionDate).toLocaleString()}
+                        </div>
+
+                        {/* Itemized Detail List */}
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1 my-2">
                             {selectedSale.items.map((item) => (
-                                <div key={item.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                    <div>
-                                        <div className="font-medium text-gray-800">{item.medicineName}</div>
-                                        <div className="text-xs text-gray-500">Qty: {item.quantity} x ₱{item.unitPrice.toFixed(2)}</div>
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs">
+                                    <div className="space-y-0.5">
+                                        <p className="font-bold text-slate-900">{item.medicineName}</p>
+                                        <p className="text-slate-400">Qty: {item.quantity} x ₱{item.unitPrice.toFixed(2)}</p>
                                     </div>
-                                    <div className="font-bold">₱{item.subTotal.toFixed(2)}</div>
+                                    <span className="font-extrabold text-slate-900 text-sm">
+                                        ₱{item.subTotal.toFixed(2)}
+                                    </span>
                                 </div>
                             ))}
                         </div>
-                        <div className="border-t pt-4 flex justify-between items-center text-lg font-bold">
-                            <span>Total Paid</span>
-                            <span className="text-green-600">₱{selectedSale.totalAmount.toFixed(2)}</span>
+
+                        {/* Modal Footer / Actions */}
+                        <div className="pt-4 border-t border-slate-100 space-y-4">
+                            <div className="flex justify-between items-baseline">
+                                <span className="text-xs font-bold text-slate-500 uppercase">Total Paid</span>
+                                <span className="text-2xl font-black text-emerald-600">₱{selectedSale.totalAmount.toFixed(2)}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => handlePrint(selectedSale)} 
+                                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-xs shadow-md shadow-blue-600/20 transition-all"
+                                >
+                                    <PrinterIcon />
+                                    <span>Print Receipt</span>
+                                </button>
+                                <button 
+                                    onClick={() => setSelectedSale(null)} 
+                                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all"
+                                >
+                                    Close Inspection
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex gap-2 mt-6">
-                            <button onClick={() => handlePrint(selectedSale)} className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-bold">Print</button>
-                            <button onClick={() => setSelectedSale(null)} className="flex-1 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Close</button>
-                        </div>
+
                     </div>
                 </div>
             )}
+
+            {/* Offscreen Thermal Receipt Printer Component */}
             <PrintableReceipt data={printData} />
         </div>
     );
