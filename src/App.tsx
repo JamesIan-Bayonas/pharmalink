@@ -1,51 +1,61 @@
+import { lazy } from 'react'; // No need to import Suspense here anymore
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { ProtectedRoute, RoleRoute } from '../src/routes/ProtectedRoutes';
-import Login from './features/auth/Login';
+import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoutes';
 import DashboardLayout from './layouts/DashboardLayout';
-import DashboardPage from './features/dashboard/DashboardPage';
-import InventoryPage from './features/inventory/InventoryPage';
-import POSTerminalPage from './features/pos/POSTerminalPage';
-import SalesHistoryPage from './features/sales/SalesHistoryPage';
-import UserManagementPage from './features/users/UserManagementPage';
-import CategoryManagementPage from './features/categories/CategoryManagementPage';
-import ProfilePage from './features/users/ProfilePage';
+import Login from './features/auth/Login';
 
-// Placeholders (Create these files later as .tsx)
-// const Dashboard = () => <h2>Dashboard (Common)</h2>;
-// const Inventory = () => <h2>Inventory (Admin Only)</h2>;
-// const POS = () => <h2>POS Terminal (Pharmacist/Admin)</h2>;
-const Unauthorized = () => <div className="p-8 text-center text-red-600 text-xl font-bold">Access Denied</div>; 
+// --- DEMO HELPER: ROBUST DELAY ---
+// We use Promise.all to ensure we wait for the timer AND the import.
+// This is more robust than the previous chaining method.
+const delayForDemo = (importPromise: Promise<any>) => {
+  return Promise.all([
+    importPromise,
+    new Promise(resolve => setTimeout(resolve, 1500)) // 1.5s Wait
+  ]).then(([module]) => module);
+};
+
+// --- LAZY IMPORTS ---
+const DashboardPage = lazy(() => delayForDemo(import('./features/dashboard/DashboardPage')));
+const InventoryPage = lazy(() => delayForDemo(import('./features/inventory/InventoryPage')));
+const POSTerminalPage = lazy(() => delayForDemo(import('./features/pos/POSTerminalPage')));
+const SalesHistoryPage = lazy(() => delayForDemo(import('./features/sales/SalesHistoryPage')));
+const UserManagementPage = lazy(() => delayForDemo(import('./features/users/UserManagementPage')));
+const CategoryManagementPage = lazy(() => delayForDemo(import('./features/categories/CategoryManagementPage')));
+const ProfilePage = lazy(() => delayForDemo(import('./features/users/ProfilePage')));
+
+const Unauthorized = () => <div className="p-8 text-center text-red-600 font-bold text-xl">Access Denied</div>;
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* Protected Area */}
           <Route element={<ProtectedRoute />}>
-            {/* Dashboard Layout */}
+            {/* The Layout now handles the Skeleton showing up! */}
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Shared Routes */}
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+
+              {/* Role Specific Routes */}
               <Route element={<RoleRoute allowedRoles={['Admin', 'Pharmacist']} />}>
                 <Route path="/sales" element={<POSTerminalPage />} />
                 <Route path="/history" element={<SalesHistoryPage />} />
               </Route>
+
               <Route element={<RoleRoute allowedRoles={['Admin']} />}>
                 <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
                 <Route path="/categories" element={<CategoryManagementPage />} />
-                <Route path="profile" element={<ProfilePage />} />
               </Route>
-
             </Route>
           </Route>
-
         </Routes>
       </BrowserRouter>
     </AuthProvider>
