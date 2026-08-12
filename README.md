@@ -8,7 +8,7 @@
 **PharmaLink Web** is the client-side application for the PharmaLink system. Built with **React 18** and **TypeScript**, it provides a responsive, role-based interface for managing pharmacy operations—from inventory tracking to point-of-sale transactions.
 
 
-![PharmaLink Dashboard Preview](./src/assets/dashboard-preview.png)
+![PharmaLink Dashboard Preview](./dashboard-preview.png)
 
 ---
 
@@ -17,13 +17,13 @@
 **This project is the Frontend only.**
 It relies entirely on the **PharmaLink API** (Backend) to function. You **must** have the backend API running locally for this application to load data or authenticate users.
 
-👉 **Get the Backend Here:** **[PharmaLink API Repository](https://github.com/JamesIan-Bayonas/pharmalink)**
+**Get the Backend Here:** **[PharmaLink API Repository](https://github.com/JamesIan-Bayonas/pharmalink)**
 
 *Ensure the API is running at `http://localhost:5297` (or your configured port) before starting this application.*
 
 ---
 
-## 🏗️ Architecture & Integration
+## Architecture & Integration
 
 This project implements a strict **Client-Server Architecture**.
 
