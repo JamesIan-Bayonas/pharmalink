@@ -8,6 +8,7 @@ using PharmaLink.API.Interfaces.ServiceInterface;
 using PharmaLink.API.Middleware;
 using PharmaLink.API.Repositories;
 using PharmaLink.API.Services;
+using PharmaLink.API.Utilities;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,15 +16,21 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Services to container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
-builder.Services.AddCors(options =>     
-{                                       
-    options.AddPolicy("AllowReactApp",  
-        builder => builder              
-            .WithOrigins("http://localhost:5173", "http://localhost:5000") // NOTE:: Update this port if your React app uses a different one
-            .AllowAnyMethod()           
-            .AllowAnyHeader());         
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
+// Dynamic Production & Local CORS Policy Configuration
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173", "http://localhost:5000" };
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        corsBuilder => corsBuilder
+            .WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials());
 });
 
 // Configure Swagger to allow JWT Input
@@ -55,14 +62,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Dependency Injection Registration
-// Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMedicineRepository, MedicineRepository>();
 builder.Services.AddScoped<ISaleRepository, SaleRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 
-//Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
@@ -91,11 +96,13 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-    app.UseSwagger();
-    app.UseSwaggerUI();
+await DbSeeder.SeedUsersAsync(app.Services);
+
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseMiddleware<ExceptionMiddleware>();
 
-app.UseHttpsRedirection();  
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseCors("AllowReactApp");

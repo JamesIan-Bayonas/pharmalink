@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Client;
 using PharmaLink.API.DTOs.Medicines;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;

@@ -22,18 +22,16 @@ namespace PharmaLink.API.Controllers
         }
 
         [HttpGet("me")]
-        [Authorize] // Requires Login
+        [Authorize]
         public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
-                // Get User ID from the Token
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-                if (userIdClaim == null) return Unauthorized();
+                var userIdClaim = User.FindFirst("uid");
+                if (userIdClaim == null || string.IsNullOrEmpty(userIdClaim.Value)) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
-                // Fetch fresh data from Database (NOT the token)
                 var userDto = await _authService.GetCurrentUserAsync(userId);
 
                 if (userDto == null) return NotFound();
@@ -47,12 +45,11 @@ namespace PharmaLink.API.Controllers
         }
 
         [HttpPut("users/{id}")]
-        [AdminGuard("Admin Only")] // Security: Only Admins can access
+        [AdminGuard("Admin Only")]
         public async Task<IActionResult> UpdateUserAsAdmin(int id, [FromBody] UserUpdateDto request)
         {
             try
             {
-                // Check if user exists by calling AuthService.UpdateUserAsync with the ID from the URL, not the token.
                 var success = await _authService.UpdateUserAsync(id, request);
 
                 if (!success) return BadRequest(new { message = "Failed to update user." });
@@ -111,8 +108,9 @@ namespace PharmaLink.API.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "uid");
-                if (userIdClaim == null) return Unauthorized();
+                // FIX CS8602: Safe claim extraction using FindFirst and null verification
+                var userIdClaim = User.FindFirst("uid");
+                if (userIdClaim == null || string.IsNullOrEmpty(userIdClaim.Value)) return Unauthorized();
 
                 int userId = int.Parse(userIdClaim.Value);
 
@@ -128,20 +126,16 @@ namespace PharmaLink.API.Controllers
             }
         }
 
-        
-        [HttpDelete("delete/{id}")] 
-        [AdminGuard("Admin Only")]  
+        [HttpDelete("delete/{id}")]
+        [AdminGuard("Admin Only")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             try
             {
-             
                 var success = await _authService.DeleteUserAsync(id);
 
-              
                 if (!success) return NotFound(new { message = "User not found" });
 
-                
                 return Ok(new { message = "User deleted successfully by Admin." });
             }
             catch (Exception ex)
@@ -149,7 +143,5 @@ namespace PharmaLink.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
-
     }
-    }
+}

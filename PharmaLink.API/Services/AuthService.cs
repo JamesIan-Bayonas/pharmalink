@@ -4,14 +4,13 @@ using PharmaLink.API.DTOs.Users;
 using PharmaLink.API.Entities;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 using PharmaLink.API.Interfaces.ServiceInterface;
-using PharmaLink.API.Repositories;
 
 namespace PharmaLink.API.Services
 {
-    public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService 
+    public class AuthService(IUserRepository userRepository, ITokenService tokenService, IMapper mapper) : IAuthService
     {
-
-        public async Task<UserResponseDto> GetCurrentUserAsync(int userId)
+        // FIX CS8603: Signature matches nullable return Task<UserResponseDto?>
+        public async Task<UserResponseDto?> GetCurrentUserAsync(int userId)
         {
             var user = await userRepository.GetByIdAsync(userId);
             if (user == null) return null;
@@ -21,7 +20,12 @@ namespace PharmaLink.API.Services
 
         public async Task<string> RegisterAsync(User user, string password, string role)
         {
-            // Check if user exists
+            // FIX CS8604: Guard against null or empty UserName before passing to repository query
+            if (string.IsNullOrWhiteSpace(user.UserName))
+            {
+                throw new ArgumentException("Username cannot be empty or null.");
+            }
+
             var existingUser = await userRepository.GetByUsernameAsync(user.UserName);
             if (existingUser != null) throw new Exception("Username already exists.");
 
@@ -42,19 +46,18 @@ namespace PharmaLink.API.Services
             return "User registered successfully.";
         }
 
-        public async Task<string> LoginAsync(string username, string password)
+        // FIX CS8603: Correct task syntax Task<string?> to allow returning null on failed logins
+        public async Task<string?> LoginAsync(string username, string password)
         {
-            // Get User
             var user = await userRepository.GetByUsernameAsync(username);
             if (user == null) return null;
 
-            // Implements BCrypt.Net.BCrypt
-            if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            if (string.IsNullOrEmpty(user.PasswordHash) || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 return null;
 
-            // Generate JWT Token
             return tokenService.GenerateToken(user);
         }
+
         public async Task<bool> UpdateUserAsync(int userId, UserUpdateDto request)
         {
             var user = await userRepository.GetByIdAsync(userId);
@@ -67,14 +70,11 @@ namespace PharmaLink.API.Services
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             }
 
-            // 3. Update Role (Only if provided AND not null)
-            // This prevents "My Profile" (which sends null Role) from wiping the user's role
             if (!string.IsNullOrEmpty(request.Role))
             {
                 user.Role = request.Role;
             }
 
-            // 4. Save to Database
             return await userRepository.UpdateAsync(user);
         }
 
@@ -85,9 +85,8 @@ namespace PharmaLink.API.Services
 
         public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
         {
-         
             var users = await userRepository.GetAllAsync();
-            return mapper.Map<IEnumerable<UserResponseDto>>(users); // Map Entities to DTOs, using auto-mapper
+            return mapper.Map<IEnumerable<UserResponseDto>>(users);
         }
     }
 }
