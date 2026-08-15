@@ -75,8 +75,11 @@ const ProfilePage = () => {
                 setUserName(profileData.userName);
 
                 if (profileData.profileImagePath) {
-                    const baseUrl = "http://localhost:5297/"; 
-                    setProfileImageServerUrl(`${baseUrl}${profileData.profileImagePath}`);
+                    // Replace the hardcoded "http://localhost:5297/" with:
+                    const backendRoot = import.meta.env.VITE_API_URL 
+                        ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') 
+                        : 'http://localhost:5297';
+            setProfileImageServerUrl(`${backendRoot}/${profileData.profileImagePath.replace(/^\/+/, '')}`);
                 }
             } catch (error) {
                 console.error("Failed to load profile", error);
@@ -121,12 +124,16 @@ const ProfilePage = () => {
             
             const updatedProfile = await getMyProfile();
             if (updatedProfile.profileImagePath) {
-                 const baseUrl = "http://localhost:5297/";
-                 setProfileImageServerUrl(`${baseUrl}${updatedProfile.profileImagePath}`);
+                 // Replace the hardcoded "http://localhost:5297/" with:
+            const backendRoot = import.meta.env.VITE_API_URL 
+                ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') 
+                : 'http://localhost:5297';
+
+                setProfileImageServerUrl(`${backendRoot}/${updatedProfile.profileImagePath.replace(/^\/+/, '')}`);
                  setPreviewImage(null);
             }
 
-        } catch (error: any) {
+        } catch (error: any) {``
             console.error(error);
             setMessage({ type: 'error', text: error.response?.data?.message || error.message || "Failed to update account settings." });
         } finally {

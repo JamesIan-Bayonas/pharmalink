@@ -82,9 +82,16 @@ const UserManagementPage = () => {
     };
 
     // Construct Image URL
+    // Update the getImageUrl helper:
     const getImageUrl = (path?: string) => {
         if (!path) return null;
-        return path.startsWith('http') ? path : `http://localhost:5297/${path}`;
+        if (path.startsWith('http')) return path;
+        
+        const backendRoot = import.meta.env.VITE_API_URL 
+            ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') 
+            : 'http://localhost:5297';
+
+        return `${backendRoot}/${path.replace(/^\/+/, '')}`;
     };
 
     return (
