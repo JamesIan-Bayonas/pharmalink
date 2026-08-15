@@ -1,5 +1,5 @@
 ﻿using Dapper;
-using Microsoft.Data.SqlClient;
+using Npgsql;
 using PharmaLink.API.DTOs.Dashboard;
 using PharmaLink.API.Interfaces.RepositoryInterface;
 
@@ -12,36 +12,39 @@ namespace PharmaLink.API.Repositories
 
         public async Task<DashboardStatsDto> GetDailyStatsAsync()
         {
-            using var connection = new SqlConnection(_connectionString);
+            using var connection = new NpgsqlConnection(_connectionString);
 
-            // Group sales by date for the last 7 days
-            var sql = @"
-                
+            // In PostgreSQL:
+            // 1. COALESCE instead of ISNULL
+            // 2. CURRENT_DATE instead of CAST(GETDATE() AS DATE)
+            // 3. (CURRENT_DATE + INTERVAL '90 days') instead of DATEADD
+            // 4. TO_CHAR("TransactionDate", 'Dy') returns 'Mon', 'Tue'
+            const string sql = @"
                 -- 1. Total Revenue Today
-                SELECT ISNULL(SUM(TotalAmount), 0) FROM Sales 
-                WHERE CAST(TransactionDate AS DATE) = CAST(GETDATE() AS DATE);
+                SELECT COALESCE(SUM(""TotalAmount""), 0) FROM ""Sales"" 
+                WHERE CAST(""TransactionDate"" AS DATE) = CURRENT_DATE;
 
                 -- 2. Transactions Today
-                SELECT COUNT(*) FROM Sales 
-                WHERE CAST(TransactionDate AS DATE) = CAST(GETDATE() AS DATE);
+                SELECT COUNT(*) FROM ""Sales"" 
+                WHERE CAST(""TransactionDate"" AS DATE) = CURRENT_DATE;
 
                 -- 3. Low Stock Items
-                SELECT COUNT(*) FROM Medicines WHERE StockQuantity <= 10;
+                SELECT COUNT(*) FROM ""Medicines"" WHERE ""StockQuantity"" <= 10;
 
                 -- 4. Expiring Soon Items (90 Days)
-                SELECT COUNT(*) FROM Medicines WHERE ExpiryDate <= DATEADD(day, 90, GETDATE());
+                SELECT COUNT(*) FROM ""Medicines"" WHERE ""ExpiryDate"" <= (CURRENT_DATE + INTERVAL '90 days');
 
                 -- 5. Total Medicines
-                SELECT COUNT(*) FROM Medicines;
+                SELECT COUNT(*) FROM ""Medicines"";
 
-                -- 6. NEW: Weekly Sales Trend (Last 7 Days)
+                -- 6. Weekly Sales Trend (Last 7 Days)
                 SELECT 
-                    FORMAT(TransactionDate, 'ddd') as DateLabel, -- Returns 'Mon', 'Tue'
-                    SUM(TotalAmount) as TotalAmount
-                FROM Sales
-                WHERE TransactionDate >= DATEADD(day, -6, CAST(GETDATE() AS DATE))
-                GROUP BY CAST(TransactionDate AS DATE), FORMAT(TransactionDate, 'ddd')
-                ORDER BY CAST(TransactionDate AS DATE);
+                    TO_CHAR(""TransactionDate"", 'Dy') as ""DateLabel"",
+                    COALESCE(SUM(""TotalAmount""), 0) as ""TotalAmount""
+                FROM ""Sales""
+                WHERE ""TransactionDate"" >= (CURRENT_DATE - INTERVAL '6 days')
+                GROUP BY CAST(""TransactionDate"" AS DATE), TO_CHAR(""TransactionDate"", 'Dy')
+                ORDER BY CAST(""TransactionDate"" AS DATE);
             ";
 
             await connection.OpenAsync();
@@ -56,7 +59,6 @@ namespace PharmaLink.API.Repositories
                 TotalMedicines = await multi.ReadSingleAsync<int>()
             };
 
-            // Read the list for the chart
             stats.WeeklySales = (await multi.ReadAsync<SalesTrendDto>()).ToList();
 
             return stats;
