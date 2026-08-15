@@ -365,3 +365,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+    
+# RepoMix output files
+repomix-output.xml
+repomix-output-BE.xml
+repomix-output-pharmalink.xml
