@@ -1,8 +1,12 @@
 # PharmaLink
 
-> **Executive Summary:** PharmaLink is a high-availability clinical inventory and Point-of-Sale (POS) management system designed to enforce strict operational workflows for pharmacy staff. Engineered with an ASP.NET Core Web API, a React/TypeScript frontend, and a PostgreSQL database, it guarantees atomic transactional integrity for all dispensed medications while enforcing role-based access controls.
+**Executive Summary:** PharmaLink is a high-availability clinical inventory and Point-of-Sale (POS) management system designed to enforce strict operational workflows for pharmacy staff. Engineered with an ASP.NET Core Web API, a React/TypeScript frontend, and a PostgreSQL database, it guarantees atomic transactional integrity for all dispensed medications while enforcing role-based access controls.
 
-[Live Demo](https://pharmalink-web-wine.vercel.app/dashboard)
+<p align="center">
+  <a href="https://pharmalink-web-wine.vercel.app/dashboard" target="_blank">
+    <img src="https://img.shields.io/badge/Live%20Production%20Demo-Click%20To%20Launch-06b6d4?style=for-the-badge&logo=railway&logoColor=white" alt="Live Demo" />
+  </a>
+</p>
 
 ---
 
