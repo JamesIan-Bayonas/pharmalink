@@ -57,6 +57,12 @@ const Login = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
 
+    const handleApplyPreset = (presetUser: string, presetPass: string) => {
+        setUsername(presetUser);
+        setPassword(presetPass);
+        if (error) setError('');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -237,7 +243,30 @@ const Login = () => {
                                 </div>
                             </div>
                         </div>
-
+                        
+                        {/* QUICK CREDENTIAL PRESETS */}
+                        <div className="space-y-2 pt-1">
+                            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                Quick Credential Presets
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyPreset('admin', 'Admin123!')}
+                                    className="px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100/80 border border-purple-200/80 text-purple-700 text-xs font-mono font-bold tracking-tight transition-all active:scale-95 cursor-pointer"
+                                >
+                                    admin
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyPreset('pharmacist', 'Pharmacist123!')}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/80 text-emerald-700 text-xs font-mono font-bold tracking-tight transition-all active:scale-95 cursor-pointer"
+                                >
+                                    pharmacist
+                                </button>
+                            </div>
+                        </div>
+                        
                         {/* Submit Action */}
                         <button
                             type="submit"
