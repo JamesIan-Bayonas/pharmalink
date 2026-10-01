@@ -1,15 +1,17 @@
 // src/features/inventory/InventoryPage.tsx
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom'; 
 import { getMedicines, deleteMedicine, type Medicine, type PaginationMeta } from '../../services/medicineService';
 import { getAllCategories, type Category } from '../../services/categoryService';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import AddMedicineModal from './AddMedicineModal';
 import RestockModal from './RestockModal';
+import ConfirmActionDialog from '../../components/common/ConfirmActionDialog';
+import axios from 'axios';
 
 // Native SVG Icons (Article VII Compliance - Zero Third-Party Dependencies)
 const SearchIcon = () => (
-    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
 );
@@ -21,7 +23,7 @@ const PlusIcon = () => (
 );
 
 const FilterIcon = () => (
-    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
     </svg>
 );
@@ -64,10 +66,12 @@ const InventoryPage = () => {
     // Data State
     const [medicines, setMedicines] = useState<Medicine[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [categoriesError, setCategoriesError] = useState(false);
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
     
     // UI State
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
     
@@ -81,10 +85,13 @@ const InventoryPage = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isRestockModalOpen, setIsRestockModalOpen] = useState(false);
     const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+    const [medicineToDelete, setMedicineToDelete] = useState<Medicine | null>(null);
+    const [actionNotice, setActionNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
 
     // Fetch Inventory
-    const fetchInventory = async () => {
+    const fetchInventory = useCallback(async () => {
         setLoading(true);
+        setLoadError(false);
         try {
             const response = await getMedicines({ 
                 pageNumber: page, 
@@ -97,33 +104,36 @@ const InventoryPage = () => {
             setMeta(response.meta);
         } catch (error) {
             console.error("Failed to load inventory", error);
+            setLoadError(true);
+            setMedicines([]);
+            setMeta(null);
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, searchTerm, activeFilter, selectedCategoryId]);
 
-    // Load Categories
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const data = await getAllCategories();
-                setCategories(data);
-            } catch (error) {
-                console.error("Failed to load categories", error);
-            }
-        };
-        fetchCategories();
+    const fetchCategories = useCallback(async () => {
+        setCategoriesError(false);
+        try {
+            const data = await getAllCategories();
+            setCategories(data);
+        } catch (error) {
+            console.error('Failed to load categories', error);
+            setCategoriesError(true);
+        }
     }, []);
+
+    useEffect(() => { void fetchCategories(); }, [fetchCategories]);
 
     // Refetch when dependencies change
     useEffect(() => {
-        fetchInventory();
-    }, [page, searchTerm, activeFilter, selectedCategoryId]);
+        void fetchInventory();
+    }, [fetchInventory]);
 
     // Helper to get Category Name from ID
     const getCategoryName = (id: number) => {
         const cat = categories.find(c => c.id === id);
-        return cat ? cat.name : 'Unassigned';
+        return cat ? cat.name : id ? `Category #${id}` : 'Unassigned';
     };
 
     // Handlers
@@ -132,41 +142,27 @@ const InventoryPage = () => {
         setSearchParams(newFilter ? { filter: newFilter } : {}); 
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Are you sure you want to delete this medication from inventory?")) return;
-        try {
-            await deleteMedicine(id);   
-            fetchInventory();
-        } catch (error) {
-            alert("Failed to delete record. It may be linked to existing sales.");
-        }
-    };
-
-    // Row Color Logic
-    const getRowColor = (item: Medicine) => {
-        const isLow = item.stockQuantity <= 10;
-        const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
-        const isExpiring = daysUntilExpiry <= 90;
-
-        if (isLow) return 'bg-rose-50/60 hover:bg-rose-100/60';
-        if (isExpiring) return 'bg-amber-50/60 hover:bg-amber-100/60';
-        return 'bg-white hover:bg-slate-50/80';
+    const handleDelete = async (medicine: Medicine) => {
+        await deleteMedicine(medicine.id);
+        setActionNotice({ kind: 'success', text: `${medicine.name} was removed from inventory.` });
+        if (page === 1) await fetchInventory();
+        else setPage(1);
     };
 
     return (
         <div className="space-y-6 antialiased">
             
             {/* HEADER & TOP CONTROL HUB */}
-            <header className="flex flex-col xl:flex-row xl:items-center justify-between bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm gap-4">
+            <header className="flex flex-col 2xl:flex-row 2xl:items-center justify-between bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Inventory Catalog</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Manage medication stock counts, pricing, and expiration thresholds</p>
+                    <p className="text-sm text-slate-500 mt-0.5">{user?.role === 'Admin' ? 'Review and manage medicine stock, prices, and expiry dates' : 'Review medicine stock, prices, and expiry dates; changes require an administrator'}</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
                     
                     {/* Status Filter Tabs */}
-                    <div className="inline-flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0">
+                    <div className="flex flex-wrap items-center w-full sm:w-auto bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
                         <button 
                             onClick={() => handleFilterChange('')}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
@@ -181,7 +177,7 @@ const InventoryPage = () => {
                             onClick={() => handleFilterChange('low')}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                                 activeFilter === 'low' 
-                                    ? 'bg-rose-600 text-white shadow-sm' 
+                                    ? 'bg-[var(--critical)] text-[var(--critical-surface)] shadow-sm'
                                     : 'text-rose-600 hover:bg-rose-50'
                             }`}
                         >
@@ -192,12 +188,12 @@ const InventoryPage = () => {
                             onClick={() => handleFilterChange('expiring')}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                                 activeFilter === 'expiring' 
-                                    ? 'bg-amber-500 text-white shadow-sm' 
+                                    ? 'bg-[var(--caution)] text-[var(--caution-surface)] shadow-sm'
                                     : 'text-amber-600 hover:bg-amber-50'
                             }`}
                         >
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            Expiring
+                            Expired / 90 days
                         </button>
                     </div>
 
@@ -207,6 +203,7 @@ const InventoryPage = () => {
                             <FilterIcon />
                         </div>
                         <select
+                            aria-label="Filter inventory by category"
                             value={selectedCategoryId}
                             onChange={(e) => { 
                                 setSelectedCategoryId(e.target.value ? Number(e.target.value) : ''); 
@@ -228,6 +225,7 @@ const InventoryPage = () => {
                         </div>
                         <input 
                             type="text" 
+                            aria-label="Search inventory"
                             placeholder="Search catalog..." 
                             value={searchTerm}
                             onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
@@ -249,9 +247,45 @@ const InventoryPage = () => {
             </header>
 
             {/* INVENTORY DATA TABLE */}
+            {loadError && (
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    Inventory could not be loaded. Check the connection and <button type="button" onClick={fetchInventory} className="font-bold underline">try again</button>.
+                </div>
+            )}
+            {categoriesError && <div role="alert" className="rounded-xl border border-[var(--critical)] bg-[var(--critical-surface)] p-4 text-sm text-[var(--critical)]">Category names could not be loaded. Medicine rows remain available by ID. <button type="button" onClick={fetchCategories} className="font-bold underline">Retry categories</button>.</div>}
+            {actionNotice && <div role={actionNotice.kind === 'error' ? 'alert' : 'status'} className={`rounded-xl border p-4 text-sm ${actionNotice.kind === 'error' ? 'border-[var(--critical)] bg-[var(--critical-surface)] text-[var(--critical)]' : 'border-[var(--positive)] bg-[var(--positive-surface)] text-[var(--positive)]'}`}>{actionNotice.text}</div>}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="md:hidden divide-y divide-[var(--border-decorative)]">
+                    {loading ? <p className="p-6 text-sm text-[var(--text-secondary)]">Loading medicines…</p>
+                        : loadError ? null
+                        : medicines.length === 0 ? <p className="p-6 text-sm text-[var(--text-secondary)]">{searchTerm || activeFilter || selectedCategoryId ? 'No medicines match the current search and filters.' : 'No medicines are in the inventory catalog yet.'}</p>
+                        : medicines.map(item => {
+                            const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - Date.now()) / 86400000);
+                            const expiryStatus = daysUntilExpiry < 0 ? 'Expired' : daysUntilExpiry <= 90 ? 'Due within 90 days' : 'Within date';
+                            return (
+                                <article key={item.id} className="space-y-3 p-4">
+                                    <div>
+                                        <h2 className="break-words text-base font-bold text-[var(--text-primary)]">{item.name}</h2>
+                                        <p className="text-xs text-[var(--text-secondary)]">{getCategoryName(item.categoryId)}{item.description ? ` · ${item.description}` : ''}</p>
+                                    </div>
+                                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                                        <div><dt className="text-xs text-[var(--text-secondary)]">Stock</dt><dd className="font-semibold">{item.stockQuantity === 0 ? 'Out of stock' : item.stockQuantity <= 10 ? `Low: ${item.stockQuantity} units` : `${item.stockQuantity} units`}</dd></div>
+                                        <div><dt className="text-xs text-[var(--text-secondary)]">Unit price</dt><dd className="font-semibold">₱{item.price.toFixed(2)}</dd></div>
+                                        <div className="col-span-2"><dt className="text-xs text-[var(--text-secondary)]">Expiry</dt><dd className="font-semibold">{expiryStatus} · {new Date(item.expiryDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</dd></div>
+                                    </dl>
+                                    {user?.role === 'Admin' ? (
+                                        <div className="flex flex-wrap gap-2 border-t border-[var(--border-decorative)] pt-3">
+                                            <button type="button" onClick={() => { setSelectedMedicine(item); setIsRestockModalOpen(true); }} className="rounded-lg border border-[var(--border-control)] px-3 py-2 text-xs font-bold">Add stock</button>
+                                            <button type="button" onClick={() => { setSelectedMedicine(item); setIsAddModalOpen(true); }} className="rounded-lg border border-[var(--border-control)] px-3 py-2 text-xs font-bold">Edit medicine</button>
+                                            <button type="button" onClick={() => { setActionNotice(null); setMedicineToDelete(item); }} className="rounded-lg border border-[var(--critical)] px-3 py-2 text-xs font-bold text-[var(--critical)]">Delete</button>
+                                        </div>
+                                    ) : <p className="text-xs text-[var(--text-secondary)]">Read-only inventory</p>}
+                                </article>
+                            );
+                        })}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full min-w-[850px] text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
                                 <th className="py-3.5 px-6">Medication Name</th>
@@ -265,17 +299,17 @@ const InventoryPage = () => {
                         <tbody className="divide-y divide-slate-100 text-sm">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center text-slate-400">
+                                    <td colSpan={6} className="py-16 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <Spinner />
                                             <p className="text-xs font-semibold">Loading Inventory Data...</p>
                                         </div>
                                     </td>
                                 </tr>
-                            ) : medicines.length === 0 ? (
+                            ) : loadError ? null : medicines.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-16 text-center text-slate-400">
-                                        <p className="text-sm font-medium">No medication records match your search or filter rules.</p>
+                                    <td colSpan={6} className="py-16 text-center text-slate-500">
+                                        <p className="text-sm font-medium">{searchTerm || activeFilter || selectedCategoryId ? 'No medicines match the current search and filters.' : 'No medicines are in the inventory catalog yet.'}</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -283,15 +317,16 @@ const InventoryPage = () => {
                                     const isLow = item.stockQuantity <= 10;
                                     const daysUntilExpiry = Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
                                     const isExpiring = daysUntilExpiry <= 90;
+                                    const isExpired = daysUntilExpiry < 0;
 
                                     return (
-                                        <tr key={item.id} className={`transition-colors ${getRowColor(item)}`}>
+                                        <tr key={item.id} className="bg-white hover:bg-slate-50/80 transition-colors">
                                             {/* Name & Description */}
                                             <td className="py-3.5 px-6">
                                                 <div className="space-y-0.5">
                                                     <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
                                                     {item.description && (
-                                                        <p className="text-xs text-slate-400 line-clamp-1 max-w-xs">{item.description}</p>
+                                                        <p className="text-xs text-slate-500 line-clamp-1 max-w-xs">{item.description}</p>
                                                     )}
                                                 </div>
                                             </td>
@@ -310,7 +345,7 @@ const InventoryPage = () => {
                                                         ? 'bg-rose-100 text-rose-700 border border-rose-200' 
                                                         : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                                 }`}>
-                                                    {item.stockQuantity} units
+                                                    {item.stockQuantity === 0 ? 'Out of stock' : isLow ? `Low: ${item.stockQuantity} units` : `${item.stockQuantity} units`}
                                                 </span>
                                             </td>
 
@@ -321,8 +356,8 @@ const InventoryPage = () => {
 
                                             {/* Expiry Date */}
                                             <td className="py-3.5 px-6 text-center">
-                                                <span className={`text-xs font-semibold ${isExpiring ? 'text-amber-700 font-bold' : 'text-slate-600'}`}>
-                                                    {new Date(item.expiryDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                <span className={`text-xs font-semibold ${isExpired ? 'text-rose-700' : isExpiring ? 'text-amber-700' : 'text-slate-600'}`}>
+                                                    {isExpired ? 'Expired · ' : isExpiring ? 'Expiring · ' : ''}{new Date(item.expiryDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                                 </span>
                                             </td>
 
@@ -341,6 +376,7 @@ const InventoryPage = () => {
 
                                                         <button 
                                                             onClick={() => { setSelectedMedicine(item); setIsAddModalOpen(true); }}
+                                                            aria-label={`Edit ${item.name}`}
                                                             className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all"
                                                             title="Edit Medication Details"
                                                         >
@@ -348,15 +384,16 @@ const InventoryPage = () => {
                                                         </button>
 
                                                         <button 
-                                                            onClick={() => handleDelete(item.id)}
-                                                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+                                                            onClick={() => { setActionNotice(null); setMedicineToDelete(item); }}
+                                                            aria-label={`Delete ${item.name}`}
+                                                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all"
                                                             title="Delete Record"
                                                         >
                                                             <TrashIcon />
                                                         </button>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400 font-medium">Read Only</span>
+                                                    <span className="text-xs text-slate-500 font-medium">Read Only</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -399,17 +436,30 @@ const InventoryPage = () => {
             </div>
             
             {/* MODAL OVERLAYS */}
+            {medicineToDelete && (
+                <ConfirmActionDialog
+                    title={`Delete ${medicineToDelete.name}?`}
+                    description="This removes the medicine from the catalog. A medicine linked to a recorded sale may be protected by the server. This action cannot be undone here."
+                    confirmLabel="Delete medicine"
+                    onConfirm={() => handleDelete(medicineToDelete)}
+                    onClose={() => setMedicineToDelete(null)}
+                    getErrorMessage={(error) => {
+                        if (axios.isAxiosError(error) && error.response?.status === 400) return 'This medicine could not be deleted. It may be linked to recorded sales; keep the record and ask an administrator to review it.';
+                        return 'This medicine could not be deleted. Refresh inventory and try again.';
+                    }}
+                />
+            )}
             <AddMedicineModal 
                 isOpen={isAddModalOpen} 
                 onClose={() => setIsAddModalOpen(false)} 
-                onSuccess={() => { setIsAddModalOpen(false); fetchInventory(); }} 
+                onSuccess={() => { setIsAddModalOpen(false); setActionNotice({ kind: 'success', text: selectedMedicine ? `${selectedMedicine.name} was updated.` : 'Medicine added to inventory.' }); void fetchInventory(); }}
                 medicineToEdit={selectedMedicine} 
             />
 
             <RestockModal
                 isOpen={isRestockModalOpen}
                 onClose={() => setIsRestockModalOpen(false)}
-                onSuccess={() => { fetchInventory(); }}
+                onSuccess={() => { setActionNotice({ kind: 'success', text: `${selectedMedicine?.name || 'Medicine'} stock was updated.` }); void fetchInventory(); }}
                 medicine={selectedMedicine}
             />
         </div>
