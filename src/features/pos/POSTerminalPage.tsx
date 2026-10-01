@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
-import { getMedicines, type Medicine } from '../../services/medicineService';
-import { createSale, type SaleItemDto } from '../../services/saleService';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { getMedicines, type Medicine, type PaginationMeta } from '../../services/medicineService';
+import { createSale, getSaleById, type SaleItemDto } from '../../services/saleService';
+import { useAuth } from '../../context/useAuth';
 import PrintableReceipt, { type ReceiptData } from './PrintableReciept';
+import ModalFrame from '../../components/common/ModalFrame';
 
 // Native SVG Icons (Article VII Compliance - Zero External Dependencies)
 const SearchIcon = () => (
-    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
 );
@@ -41,9 +43,9 @@ const MinusIcon = () => (
     </svg>
 );
 
-const CreditCardIcon = () => (
-    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+const SaleIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4h8l3 3v13H5V4h3zm0 5h8m-8 4h8m-8 4h5" />
     </svg>
 );
 
@@ -61,24 +63,49 @@ interface CartItem extends Medicine {
 const POSTerminalPage = () => {
     const { user } = useAuth();
     const [medicines, setMedicines] = useState<Medicine[]>([]);
+    const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [catalogRevision, setCatalogRevision] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [catalogError, setCatalogError] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [lastSale, setLastSale] = useState<ReceiptData | null>(null);
+    const [checkoutNotice, setCheckoutNotice] = useState<{ kind: 'success' | 'warning' | 'error'; text: string } | null>(null);
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [outcomeUncertain, setOutcomeUncertain] = useState(false);
+    const [checkoutResultVersion, setCheckoutResultVersion] = useState(0);
+    const submissionLocked = useRef(false);
+    const pendingRequestId = useRef<string | null>(null);
+    const checkoutNoticeRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
+        if (checkoutResultVersion > 0) checkoutNoticeRef.current?.focus();
+    }, [checkoutResultVersion]);
+
+    useEffect(() => {
+        let active = true;
         const loadProducts = async () => {
             setLoading(true);
+            setCatalogError(false);
             try {
                 const response = await getMedicines({ 
-                    pageNumber: 1, pageSize: 20, searchTerm: searchTerm 
+                    pageNumber: page, pageSize: 20, searchTerm: searchTerm
                 });
-                setMedicines(response.data);
+                if (active) {
+                    setMedicines(response.data);
+                    setMeta(response.meta);
+                }
             } catch (error) {
-                console.error("Failed to load products");
+                console.error("Failed to load products", error);
+                if (active) {
+                    setCatalogError(true);
+                    setMedicines([]);
+                    setMeta(null);
+                }
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
 
@@ -86,36 +113,36 @@ const POSTerminalPage = () => {
             loadProducts();
         }, 500);
 
-        return () => clearTimeout(debounceTimer);
-    }, [searchTerm]);
-
-    useEffect(() => {
-        if (lastSale) {
-            const timer = setTimeout(() => {
-                window.print();
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [lastSale]);
+        return () => {
+            active = false;
+            clearTimeout(debounceTimer);
+        };
+    }, [searchTerm, page, catalogRevision]);
 
     const addToCart = (medicine: Medicine) => {
+        if (isProcessing || outcomeUncertain) return;
+        const existing = cart.find(item => item.id === medicine.id);
+        if (existing && existing.cartQuantity >= medicine.stockQuantity) {
+            setCheckoutNotice({ kind: 'error', text: `Only ${medicine.stockQuantity} unit${medicine.stockQuantity === 1 ? '' : 's'} of ${medicine.name} are shown as available. Refresh or adjust the cart.` });
+            return;
+        }
+        if (medicine.stockQuantity < 1) {
+            setCheckoutNotice({ kind: 'error', text: `${medicine.name} is shown as out of stock.` });
+            return;
+        }
+        pendingRequestId.current = null;
+        setCheckoutNotice(null);
         setCart(prev => {
-            const existing = prev.find(i => i.id === medicine.id);
-            if (existing && existing.cartQuantity >= medicine.stockQuantity) {
-                alert("Stock limit reached for this medication!"); 
-                return prev;
-            }
-            if (!existing && medicine.stockQuantity < 1) {
-                alert("Item is currently out of stock!"); 
-                return prev;
-            }
-            return existing 
+            const current = prev.find(item => item.id === medicine.id);
+            return current
                 ? prev.map(i => i.id === medicine.id ? { ...i, cartQuantity: i.cartQuantity + 1 } : i)
                 : [...prev, { ...medicine, cartQuantity: 1 }];
         });
     };
 
     const removeFromCart = (id: number) => {
+        if (isProcessing || outcomeUncertain) return;
+        pendingRequestId.current = null;
         setCart(prev => prev.reduce((acc, item) => {
             if (item.id === id) {
                 if (item.cartQuantity > 1) acc.push({ ...item, cartQuantity: item.cartQuantity - 1 });
@@ -127,44 +154,92 @@ const POSTerminalPage = () => {
     };
 
     const deleteFromCart = (id: number) => {
+        if (isProcessing || outcomeUncertain) return;
+        pendingRequestId.current = null;
         setCart(prev => prev.filter(item => item.id !== id));
     };
 
+    const cartUnits = cart.reduce((sum, item) => sum + item.cartQuantity, 0);
     const grandTotal = cart.reduce((sum, item) => sum + (item.price * item.cartQuantity), 0);
 
     const handleCheckout = async () => {
-        if (cart.length === 0 || isProcessing) return;
-        if (!window.confirm(`Confirm transaction payment of ₱${grandTotal.toFixed(2)}?`)) return;
-
+        if (cart.length === 0 || submissionLocked.current || outcomeUncertain) return;
+        submissionLocked.current = true;
         setIsProcessing(true);
+        setCheckoutNotice(null);
         try {
             const salesItems: SaleItemDto[] = cart.map(item => ({
                 medicineId: item.id, quantity: item.cartQuantity
             }));
 
-            const result = await createSale({ Items: salesItems });
-
-            const receiptData: ReceiptData = {
-                id: (result as any).saleId, 
-                date: new Date().toISOString(),
-                total: grandTotal, 
-                cashierName: user?.username || 'Staff',
-                items: cart.map(c => ({
-                    name: c.name, 
-                    qty: c.cartQuantity, 
-                    price: c.price, 
-                    total: c.price * c.cartQuantity 
-                }))
-            };
-
-            setLastSale(receiptData); 
+            const requestId = pendingRequestId.current ?? crypto.randomUUID();
+            pendingRequestId.current = requestId;
+            const result = await createSale({ Items: salesItems, ClientRequestId: requestId });
+            if (!Number.isInteger(result.saleId) || result.saleId < 1) {
+                setOutcomeUncertain(true);
+                setCheckoutNotice({ kind: 'warning', text: 'The server responded without a sale number. Check Sales History first; retrying this cart will use the same request ID.' });
+                return;
+            }
             setCart([]); 
+            pendingRequestId.current = null;
             setSearchTerm(''); 
-        } catch (error: any) {
+            setPage(1);
+            setLoading(true);
+            setCatalogRevision(value => value + 1);
+            setOutcomeUncertain(false);
+
+            try {
+                const sale = await getSaleById(result.saleId);
+                if (sale.id !== result.saleId || !Number.isFinite(sale.totalAmount) || !Number.isFinite(Date.parse(sale.transactionDate)) ||
+                    !Array.isArray(sale.items) || sale.items.length === 0 ||
+                    sale.items.some(item => !Number.isInteger(item.quantity) || item.quantity < 1 || !Number.isFinite(item.unitPrice) || !Number.isFinite(item.subTotal))) {
+                    throw new Error('Incomplete sale detail');
+                }
+                const receiptData: ReceiptData = {
+                    id: sale.id,
+                    date: sale.transactionDate,
+                    total: sale.totalAmount,
+                    status: sale.status,
+                    revision: sale.revision,
+                    original: Boolean(sale.status),
+                    cashierName: user?.username || 'Staff',
+                    items: sale.items.map(item => ({
+                        name: item.medicineName,
+                        qty: item.quantity,
+                        price: item.unitPrice,
+                        total: item.subTotal
+                    }))
+                };
+                setLastSale(receiptData);
+                setCheckoutNotice(sale.status === 'Voided' || sale.status === 'Corrected'
+                    ? { kind: 'warning', text: `The original sale #${sale.id} was found and is now ${sale.status.toLowerCase()}. The original receipt is retained; review Sales History for its adjustments. No new sale was created by this retry.` }
+                    : { kind: 'success', text: `Sale #${sale.id} was recorded. Review or print receipt #${sale.id} when ready.` });
+            } catch {
+                setLastSale(null);
+                setCheckoutNotice({ kind: 'warning', text: `Sale #${result.saleId} was recorded, but its receipt could not be loaded. Open Sales History to inspect or print the recorded sale.` });
+            }
+        } catch (error: unknown) {
             console.error("Checkout Error:", error);
-            alert("Checkout Failed: " + (error.response?.data?.message || "Server unresponsive. Please check network."));
+            const response = axios.isAxiosError<{ message?: string }>(error) ? error.response : undefined;
+            const serverMessage = response?.data?.message;
+            const rejected = response && response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429;
+            setOutcomeUncertain(!rejected);
+            if (rejected) {
+                pendingRequestId.current = null;
+                setLoading(true);
+                setCatalogRevision(value => value + 1);
+            }
+            setCheckoutNotice({
+                kind: rejected ? 'error' : 'warning',
+                text: rejected
+                    ? (serverMessage || 'The sale was rejected. Review the cart and current stock before trying again.')
+                    : 'The sale result is unknown because the server did not confirm it. Check Sales History first; retrying this cart will use the same request ID.'
+            });
         } finally {
+            setReviewOpen(false);
             setIsProcessing(false);
+            submissionLocked.current = false;
+            setCheckoutResultVersion(value => value + 1);
         }
     };
 
@@ -183,10 +258,11 @@ const POSTerminalPage = () => {
                     </div>
                     <input 
                         type="text" 
+                        aria-label="Search medicines"
                         placeholder="Search product inventory by name or brand..." 
                         className="w-full pl-11 pr-4 py-3 bg-slate-50/70 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
                         value={searchTerm} 
-                        onChange={e => setSearchTerm(e.target.value)} 
+                        onChange={e => { setSearchTerm(e.target.value); setPage(1); setLoading(true); }}
                         autoFocus
                     />
                     {loading && (
@@ -196,14 +272,20 @@ const POSTerminalPage = () => {
                     )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 content-start">
+                {catalogError && (
+                    <div role="alert" className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+                        The medicine catalog could not be loaded. Check the connection and try again.
+                        <button type="button" onClick={() => { setLoading(true); setCatalogRevision(value => value + 1); }} className="ml-2 font-bold underline underline-offset-2">Retry catalog</button>
+                    </div>
+                )}
+                <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4 content-start">
                     {loading && medicines.length === 0 ? (
-                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400">
+                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500">
                             <p className="text-sm font-semibold animate-pulse">Filtering Inventory Catalog...</p>
                         </div>
-                    ) : medicines.length === 0 ? (
-                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-xl">
-                            <p className="text-sm font-medium">No medications found matching "{searchTerm}"</p>
+                    ) : catalogError ? null : medicines.length === 0 ? (
+                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-500 border border-dashed border-slate-200 rounded-xl">
+                            <p className="text-sm font-medium">{searchTerm.trim() ? `No medicines match “${searchTerm}”.` : 'No medicines are in the catalog yet.'}</p>
                         </div>
                     ) : (
                         medicines.map(med => {
@@ -214,27 +296,27 @@ const POSTerminalPage = () => {
                                 <button 
                                     key={med.id} 
                                     onClick={() => addToCart(med)}
-                                    disabled={isOutOfStock}
+                                    disabled={isOutOfStock || loading || isProcessing || outcomeUncertain}
                                     className={`p-4 rounded-xl border text-left transition-all duration-150 flex flex-col justify-between space-y-3 group
-                                        ${isOutOfStock 
+                                        ${isOutOfStock || loading
                                             ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed' 
                                             : 'bg-white border-slate-200 hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5 active:bg-blue-50/30'
                                         }`}
                                 >
                                     <div className="space-y-1">
                                         <div className="flex items-start justify-between gap-2">
-                                            <h3 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1">
+                                            <h3 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-2 break-words">
                                                 {med.name}
                                             </h3>
                                         </div>
                                         {med.description && (
-                                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
                                                 {med.description}
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                    <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                                         <span className="text-base font-extrabold text-blue-600">
                                             ₱{med.price.toFixed(2)}
                                         </span>
@@ -247,7 +329,7 @@ const POSTerminalPage = () => {
                                                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                             }`}
                                         >
-                                            {isOutOfStock ? 'Out of Stock' : `${med.stockQuantity} in stock`}
+                                            {isOutOfStock ? 'Out of stock' : isLowStock ? `Low: ${med.stockQuantity} left` : `${med.stockQuantity} in stock`}
                                         </span>
                                     </div>
                                 </button>
@@ -255,6 +337,15 @@ const POSTerminalPage = () => {
                         })
                     )}
                 </div>
+                {meta && meta.totalPages > 1 && (
+                    <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 text-sm text-slate-600">
+                        <span>Page {meta.currentPage} of {meta.totalPages} · {meta.totalCount} medicines</span>
+                        <div className="flex gap-2">
+                            <button type="button" disabled={loading || page <= 1} onClick={() => { setLoading(true); setPage(value => value - 1); }} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-50">Previous</button>
+                            <button type="button" disabled={loading || page >= meta.totalPages} onClick={() => { setLoading(true); setPage(value => value + 1); }} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-50">Next</button>
+                        </div>
+                    </div>
+                )}
             </div>  
 
             <div className="w-full lg:w-96 bg-slate-900 text-slate-100 p-6 rounded-2xl shadow-xl flex flex-col border border-slate-800">
@@ -270,17 +361,31 @@ const POSTerminalPage = () => {
                             className="group flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-blue-400 transition-all"
                         >
                             <PrinterIcon />
-                            <span>Receipt</span>
+                            <span>Receipt #{lastSale.id}</span>
                         </button>
                     )}
                 </div>
 
+                {checkoutNotice && (
+                    <div ref={checkoutNoticeRef} tabIndex={-1} role={checkoutNotice.kind === 'error' ? 'alert' : 'status'} className={`mt-4 rounded-xl border p-3 text-sm ${checkoutNotice.kind === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : checkoutNotice.kind === 'warning' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                        <p>{checkoutNotice.text}</p>
+                        {checkoutNotice.kind !== 'error' && (
+                            <a href="/history" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block font-bold underline underline-offset-2">{checkoutNotice.kind === 'success' ? 'Find sale in Sales History' : 'Open Sales History in a new tab'}</a>
+                        )}
+                    </div>
+                )}
+                {outcomeUncertain && (
+                    <button type="button" onClick={() => { setOutcomeUncertain(false); setCheckoutNotice(null); }} className="mt-2 self-start text-xs font-semibold text-slate-200 underline underline-offset-2">
+                        I checked the history; let me review this cart again
+                    </button>
+                )}
+
                 <div className="flex-1 overflow-y-auto my-4 space-y-2.5 pr-1">
                     {cart.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-500 py-12 space-y-2">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-400 py-12 space-y-2">
                             <ShoppingBagIcon />
                             <p className="text-sm font-medium">Cart is currently empty</p>
-                            <p className="text-xs text-slate-600 text-center max-w-[200px]">
+                            <p className="text-xs text-slate-400 text-center max-w-[200px]">
                                 Select medication items from the left catalog to start dispensing.
                             </p>
                         </div>
@@ -288,7 +393,7 @@ const POSTerminalPage = () => {
                         cart.map(item => (
                             <div key={item.id} className="p-3 bg-slate-800/80 border border-slate-700/60 rounded-xl flex items-center justify-between gap-3">
                                 <div className="space-y-0.5 min-w-0">
-                                    <h4 className="font-semibold text-sm text-slate-100 truncate">{item.name}</h4>
+                                    <h4 className="font-semibold text-sm text-slate-100 line-clamp-2 break-words">{item.name}</h4>
                                     <p className="text-xs text-slate-400">₱{item.price.toFixed(2)} each</p>
                                 </div>
 
@@ -296,8 +401,9 @@ const POSTerminalPage = () => {
                                     <div className="flex items-center bg-slate-900 rounded-lg border border-slate-700 p-0.5">
                                         <button 
                                             onClick={() => removeFromCart(item.id)}
+                                            disabled={isProcessing || outcomeUncertain}
                                             className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-800 text-slate-300 transition-colors"
-                                            aria-label="Decrease quantity"
+                                            aria-label={`Decrease quantity of ${item.name}`}
                                         >
                                             <MinusIcon />
                                         </button>
@@ -306,20 +412,22 @@ const POSTerminalPage = () => {
                                         </span>
                                         <button 
                                             onClick={() => addToCart(item)}
+                                            disabled={isProcessing || outcomeUncertain || item.cartQuantity >= item.stockQuantity}
                                             className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-slate-800 text-slate-300 transition-colors"
-                                            aria-label="Increase quantity"
+                                            aria-label={`Increase quantity of ${item.name}`}
                                         >
                                             <PlusIcon />
                                         </button>
                                     </div>
 
                                     <div className="text-right space-y-0.5">
-                                        <p className="font-extrabold text-sm text-emerald-400">
+                                        <p className="font-extrabold text-sm text-slate-100">
                                             ₱{(item.price * item.cartQuantity).toFixed(2)}
                                         </p>
                                         <button 
                                             onClick={() => deleteFromCart(item.id)}
-                                            className="inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-rose-400 font-medium transition-colors"
+                                            disabled={isProcessing || outcomeUncertain}
+                                            className="inline-flex items-center gap-1 text-[10px] text-slate-400 hover:text-rose-400 font-medium transition-colors"
                                             title="Remove item"
                                         >
                                             <TrashIcon />
@@ -336,25 +444,23 @@ const POSTerminalPage = () => {
                     <div className="space-y-1.5">
                         <div className="flex justify-between text-xs text-slate-400 font-medium">
                             <span>Subtotal Items</span>
-                            <span>{cart.reduce((sum, item) => sum + item.cartQuantity, 0)} units</span>
+                            <span>{cartUnits} {cartUnits === 1 ? 'unit' : 'units'}</span>
                         </div>
                         <div className="flex justify-between items-baseline text-white">
                             <span className="text-sm font-semibold">Grand Total</span>
-                            <span className="text-3xl font-black text-emerald-400 tracking-tight">
+                            <span className="text-3xl font-black text-slate-100 tracking-tight">
                                 ₱{grandTotal.toFixed(2)}
                             </span>
                         </div>
                     </div>
 
                     <button 
-                        onClick={handleCheckout} 
-                        disabled={cart.length === 0 || isProcessing}
-                        className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm text-white
-                                  bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700
-                                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-slate-900
-                                  shadow-lg shadow-emerald-600/20 transition-all duration-150
+                        onClick={() => setReviewOpen(true)}
+                        disabled={cart.length === 0 || isProcessing || outcomeUncertain}
+                        className={`workspace-primary-action w-full py-3.5 px-4 rounded-xl font-bold text-sm
+                                  shadow-lg transition-all duration-150
                                   flex items-center justify-center gap-2.5
-                                  ${(cart.length === 0 || isProcessing) ? 'opacity-50 cursor-not-allowed shadow-none' : 'hover:-translate-y-0.5'}`}
+                                  ${(cart.length === 0 || isProcessing || outcomeUncertain) ? 'opacity-50 cursor-not-allowed shadow-none' : 'hover:-translate-y-0.5'}`}
                     >
                         {isProcessing ? (
                             <>
@@ -363,13 +469,34 @@ const POSTerminalPage = () => {
                             </>
                         ) : (
                             <>
-                                <CreditCardIcon />
-                                <span>Complete Sale & Pay</span>
+                                <SaleIcon />
+                                <span>Review Sale</span>
                             </>
                         )}
                     </button>
                 </div>
             </div>
+
+            {reviewOpen && (
+                <ModalFrame titleId="sale-review-title" onClose={() => setReviewOpen(false)} busy={isProcessing}>
+                    <h2 id="sale-review-title" className="text-xl font-bold">Review sale before recording</h2>
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">Confirm the medicines and quantities. The server will calculate the final price from current records.</p>
+                    <ul className="my-5 space-y-2" aria-label="Items in this sale">
+                        {cart.map(item => (
+                            <li key={item.id} className="flex justify-between gap-3 rounded-lg border border-[var(--border-decorative)] bg-[var(--surface-subtle)] p-3 text-sm">
+                                <span className="min-w-0 break-words font-medium">{item.name}<span className="block text-xs text-[var(--text-secondary)]">{item.cartQuantity} × ₱{item.price.toFixed(2)}</span></span>
+                                <span className="shrink-0 font-bold">₱{(item.cartQuantity * item.price).toFixed(2)}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="flex justify-between border-t border-[var(--border-decorative)] pt-3 font-bold"><span>Estimated total</span><span>₱{grandTotal.toFixed(2)}</span></div>
+                    <p className="mt-1 text-xs text-[var(--text-secondary)]">No payment is processed by this action.</p>
+                    <div className="mt-6 flex flex-wrap justify-end gap-2">
+                        <button type="button" onClick={() => setReviewOpen(false)} disabled={isProcessing} className="rounded-lg border border-[var(--border-control)] px-4 py-2 font-semibold disabled:opacity-50">Back to cart</button>
+                        <button type="button" onClick={handleCheckout} disabled={isProcessing} className="workspace-primary-action rounded-lg px-4 py-2 font-bold disabled:opacity-50">{isProcessing ? 'Recording sale…' : 'Confirm and record sale'}</button>
+                    </div>
+                </ModalFrame>
+            )}
 
             <PrintableReceipt data={lastSale} />
         </div>

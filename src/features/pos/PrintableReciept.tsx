@@ -9,6 +9,9 @@ export interface ReceiptData {
         total: number;
     }[];
     cashierName?: string;
+    status?: string;
+    revision?: number;
+    original?: boolean;
 }
 
 interface PrintableReceiptProps {
@@ -22,8 +25,9 @@ const PrintableReceipt = ({ data }: PrintableReceiptProps) => {
         <div id="printable-receipt" className="p-4 font-mono text-sm text-black">
             <div className="text-center mb-4">
                 <h1 className="font-bold text-xl uppercase">PharmaLink</h1>
-                <p>Dipolog City, Zamboanga</p>
-                <p>Tel: (065) 123-4567</p>
+                <p>{data.original || data.status === 'Corrected' || data.status === 'Voided' ? 'Original sale receipt' : 'Sale receipt'}</p>
+                {data.status && <p>Status at retrieval: {data.status} · Revision {data.revision ?? 0}</p>}
+                {(data.status === 'Corrected' || data.status === 'Voided') && <p>This original receipt has a retained {data.status === 'Voided' ? 'void' : 'correction'} record. Review Sales History for current values.</p>}
             </div>
 
             <div className="border-b border-black pb-2 mb-2">
@@ -41,13 +45,12 @@ const PrintableReceipt = ({ data }: PrintableReceiptProps) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {/* SAFEGUARD ADDED HERE: (item.total || 0) */}
                     {data.items.map((item, index) => (
                         <tr key={index}>
                             <td className="py-1">{item.name}</td>
                             <td className="py-1 text-right">{item.qty}</td>
                             <td className="py-1 text-right">
-                                {(item.total || 0).toFixed(2)} 
+                                {item.total.toFixed(2)}
                             </td>
                         </tr>
                     ))}
@@ -57,12 +60,9 @@ const PrintableReceipt = ({ data }: PrintableReceiptProps) => {
             <div className="border-t border-black pt-2 mb-4">
                 <div className="flex justify-between font-bold text-lg">
                     <span>TOTAL</span>
-                    {/* SAFEGUARD ADDED HERE: (data.total || 0) */}
-                    <span>P {(data.total || 0).toFixed(2)}</span>
+                    <span>₱{data.total.toFixed(2)}</span>
                 </div>
                 <div className="text-xs text-center mt-4">
-                    -- THIS IS YOURx OFFICIAL RECEIPT --
-                    <br />
                     Thank you for your purchase!
                 </div>
             </div>
