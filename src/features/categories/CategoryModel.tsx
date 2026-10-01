@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createCategory, updateCategory, type Category } from '../../services/categoryService';
+import ModalFrame from '../../components/common/ModalFrame';
 
 // Native SVG Icons (Article VII Compliance - Zero Third-Party Dependencies)
 const CloseIcon = () => (
-    <svg className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-5 h-5 text-slate-500 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
     </svg>
 );
@@ -59,7 +60,7 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
             }
             onSuccess();
             onClose();
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
             setError("Failed to save category. The classification name may already exist.");
         } finally {
@@ -70,17 +71,18 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-150">
+        <ModalFrame titleId="category-form-title" onClose={onClose} busy={loading} initialFocusSelector="#category-name">
                 
                 {/* Modal Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                    <h3 id="category-form-title" className="text-lg font-bold text-slate-900 tracking-tight">
                         {categoryToEdit ? 'Edit Category Classification' : 'Add New Category'}
                     </h3>
                     <button 
                         type="button"
                         onClick={onClose}
+                        disabled={loading}
+                        aria-label="Close category form"
                         className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
                     >
                         <CloseIcon />
@@ -89,7 +91,7 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
                 
                 {/* Error Banner */}
                 {error && (
-                    <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
+                    <div role="alert" className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
                         <AlertCircleIcon />
                         <p className="text-xs font-semibold text-rose-700">{error}</p>
                     </div>
@@ -98,11 +100,11 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
                 {/* Form Controls */}
                 <form onSubmit={handleSubmit} className="mt-4 space-y-5">
                     <div className="space-y-1.5">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        <label htmlFor="category-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                             Category Name
                         </label>
                         <input 
-                            autoFocus
+                            id="category-name"
                             type="text" 
                             required
                             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
@@ -117,6 +119,7 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
                         <button 
                             type="button" 
                             onClick={onClose}
+                            disabled={loading}
                             className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
                         >
                             Cancel
@@ -140,8 +143,7 @@ const CategoryModal = ({ isOpen, onClose, onSuccess, categoryToEdit }: CategoryM
                     </div>
                 </form>
 
-            </div>
-        </div>
+        </ModalFrame>
     );
 };
 

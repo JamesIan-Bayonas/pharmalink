@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 import { 
     getAllCategories, 
     deleteCategory, 
     type Category 
 } from '../../services/categoryService';
 import CategoryModal from './CategoryModel';
+import ConfirmActionDialog from '../../components/common/ConfirmActionDialog';
 
 // Native SVG Icons (Article VII Compliance - Zero Third-Party Dependencies)
 const SearchIcon = () => (
-    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
     </svg>
 );
@@ -48,20 +50,26 @@ const CategoryManagementPage = () => {
     // Data State
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+    const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+    const [actionNotice, setActionNotice] = useState('');
 
     // Fetch Data
     const fetchCategories = async () => {
         setLoading(true);
+        setLoadError(false);
         try {
             const data = await getAllCategories();
             setCategories(data);
         } catch (error) {
             console.error("Failed to load categories", error);
+            setLoadError(true);
+            setCategories([]);
         } finally {
             setLoading(false);
         }
@@ -73,15 +81,9 @@ const CategoryManagementPage = () => {
 
     // Handlers
     const handleDelete = async (category: Category) => {
-        if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) return;
-
-        try {
-            await deleteCategory(category.id);
-            setCategories(prev => prev.filter(c => c.id !== category.id));
-        } catch (error: any) {
-            const message = error.response?.data?.message || "Failed to delete category. It might be assigned to existing medicines.";
-            alert("Error: " + message);
-        }
+        await deleteCategory(category.id);
+        setCategories(prev => prev.filter(c => c.id !== category.id));
+        setActionNotice(`${category.name} was deleted.`);
     };
 
     const handleEdit = (category: Category) => {
@@ -118,6 +120,7 @@ const CategoryManagementPage = () => {
                         <input 
                             type="text" 
                             placeholder="Search category name..." 
+                            aria-label="Search categories"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all"
@@ -136,8 +139,28 @@ const CategoryManagementPage = () => {
             </header>
 
             {/* CATEGORY TABLE */}
+            {loadError && (
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    Categories could not be loaded. Check the connection and <button type="button" onClick={fetchCategories} className="font-bold underline">try again</button>.
+                </div>
+            )}
+            {actionNotice && <div role="status" className="rounded-xl border border-[var(--positive)] bg-[var(--positive-surface)] p-4 text-sm text-[var(--positive)]">{actionNotice}</div>}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="md:hidden divide-y divide-[var(--border-decorative)]">
+                    {loading ? <p className="p-6 text-sm text-[var(--text-secondary)]">Loading categories…</p>
+                        : loadError ? null
+                        : filteredCategories.length === 0 ? <p className="p-6 text-sm text-[var(--text-secondary)]">{searchTerm ? 'No categories match this search.' : 'No categories have been created yet.'}</p>
+                        : filteredCategories.map(category => (
+                            <article key={category.id} className="space-y-3 p-4">
+                                <div><h2 className="break-words font-bold">{category.name}</h2><p className="text-xs text-[var(--text-secondary)]">Category #{category.id}</p></div>
+                                <div className="flex flex-wrap gap-2 border-t border-[var(--border-decorative)] pt-3">
+                                    <button type="button" onClick={() => handleEdit(category)} className="rounded-lg border border-[var(--border-control)] px-3 py-2 text-xs font-bold">Edit category</button>
+                                    <button type="button" onClick={() => { setActionNotice(''); setCategoryToDelete(category); }} className="rounded-lg border border-[var(--critical)] px-3 py-2 text-xs font-bold text-[var(--critical)]">Delete category</button>
+                                </div>
+                            </article>
+                        ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
@@ -149,23 +172,23 @@ const CategoryManagementPage = () => {
                         <tbody className="divide-y divide-slate-100 text-sm">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={3} className="py-16 text-center text-slate-400">
+                                    <td colSpan={3} className="py-16 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <Spinner />
                                             <p className="text-xs font-semibold">Loading Categories...</p>
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredCategories.length === 0 ? (
+                            ) : loadError ? null : filteredCategories.length === 0 ? (
                                 <tr>
-                                    <td colSpan={3} className="py-16 text-center text-slate-400">
+                                    <td colSpan={3} className="py-16 text-center text-slate-500">
                                         <p className="text-sm font-medium">No category classifications found.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 filteredCategories.map((cat) => (
                                     <tr key={cat.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="py-3.5 px-6 font-mono font-bold text-slate-400 text-xs">
+                                        <td className="py-3.5 px-6 font-mono font-bold text-slate-500 text-xs">
                                             #{cat.id}
                                         </td>
                                         
@@ -189,7 +212,7 @@ const CategoryManagementPage = () => {
                                                 </button>
 
                                                 <button 
-                                                    onClick={() => handleDelete(cat)}
+                                                    onClick={() => { setActionNotice(''); setCategoryToDelete(cat); }}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-all"
                                                 >
                                                     <TrashIcon />
@@ -213,10 +236,23 @@ const CategoryManagementPage = () => {
             </div>
 
             {/* MODAL OVERLAY */}
+            {categoryToDelete && (
+                <ConfirmActionDialog
+                    title={`Delete ${categoryToDelete.name}?`}
+                    description="This removes the category classification. If medicines still use it, the server may prevent deletion."
+                    confirmLabel="Delete category"
+                    onConfirm={() => handleDelete(categoryToDelete)}
+                    onClose={() => setCategoryToDelete(null)}
+                    getErrorMessage={(error) => {
+                        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+                        return status === 400 ? 'This category could not be deleted. Reassign or review medicines that use it first.' : 'This category could not be deleted. Refresh the list and try again.';
+                    }}
+                />
+            )}
             <CategoryModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSuccess={() => { fetchCategories(); }}
+                onSuccess={() => { setActionNotice(selectedCategory ? `${selectedCategory.name} was updated.` : 'Category created.'); void fetchCategories(); }}
                 categoryToEdit={selectedCategory}
             />
         </div>
