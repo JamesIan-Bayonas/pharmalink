@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getDashboardStats, type DashboardStats } from '../../services/dashboardService';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../../context/useAuth';
 
 // Native SVG Icons (Article VII Compliance - Zero External Dependencies)
 const RevenueIcon = () => (
@@ -29,7 +30,7 @@ const CalendarExpirationsIcon = () => (
 );
 
 const ArrowRightIcon = () => (
-    <svg className="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
     </svg>
 );
@@ -54,26 +55,30 @@ const Spinner = () => (
 );
 
 const DashboardPage = () => {
+    const { user } = useAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [loadedAt, setLoadedAt] = useState<Date | null>(null);
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const data = await getDashboardStats();
-                setStats(data);
-            } catch (err) {
-                console.error("Failed to load dashboard:", err);
-                setError('Failed to fetch real-time dashboard analytics. Please verify server status.');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
+    const fetchStats = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const data = await getDashboardStats();
+            setStats(data);
+            setLoadedAt(new Date());
+        } catch (err) {
+            console.error('Failed to load dashboard:', err);
+            setError('The dashboard snapshot could not be refreshed. Check the connection and try again.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    if (loading) {
+    useEffect(() => { void fetchStats(); }, [fetchStats]);
+
+    if (loading && !stats) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] w-full space-y-3">
                 <Spinner />
@@ -82,11 +87,12 @@ const DashboardPage = () => {
         );
     }
 
-    if (error) {
+    if (error && !stats) {
         return (
-            <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 max-w-2xl mx-auto my-8">
-                <h3 className="font-bold text-base mb-1">Analytics Error</h3>
+            <div role="alert" className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 max-w-2xl mx-auto my-8">
+                <h3 className="font-bold text-base mb-1">Snapshot unavailable</h3>
                 <p className="text-sm text-rose-600">{error}</p>
+                <button type="button" onClick={fetchStats} className="mt-3 font-bold underline">Retry snapshot</button>
             </div>
         );
     }
@@ -95,23 +101,20 @@ const DashboardPage = () => {
 
     return (
         <div className="space-y-6 antialiased">
+            {error && <div role="alert" className="rounded-xl border border-[var(--critical)] bg-[var(--critical-surface)] p-4 text-sm text-[var(--critical)]">{error} The figures below are from the previous load.</div>}
             
             {/* PAGE HEADER */}
             <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
                 <div>
                     <div className="flex items-center gap-2">
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pharmacy Overview</h1>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Live Metrics
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            Snapshot
                         </span>
                     </div>
-                    <p className="text-sm text-slate-500 mt-1">Real-time inventory thresholds, sales volume, and clinical auditing</p>
+                    <p className="text-sm text-slate-500 mt-1">Sales and inventory snapshot {loadedAt ? `loaded ${loadedAt.toLocaleString()}` : 'not yet loaded'}</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200/60 self-start sm:self-auto">
-                    <span className="text-slate-400">Date:</span>
-                    <span>{new Date().toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                </div>
+                <button type="button" onClick={fetchStats} disabled={loading} className="rounded-xl border border-[var(--border-control)] bg-[var(--surface-subtle)] px-3.5 py-2 text-xs font-semibold disabled:opacity-50 self-start sm:self-auto">{loading ? 'Refreshing…' : 'Refresh snapshot'}</button>
             </header>
 
             {/* TOP ROW: STAT CARDS GRID */}
@@ -121,7 +124,7 @@ const DashboardPage = () => {
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 border-l-4 border-l-emerald-500 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Revenue</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Sales total today</p>
                             <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                                 ₱{stats.totalRevenueToday.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </h3>
@@ -130,14 +133,14 @@ const DashboardPage = () => {
                             <RevenueIcon />
                         </div>
                     </div>
-                    <p className="text-xs text-slate-400 font-medium mt-3">Calculated from gross daily POS transactions</p>
+                    <p className="text-xs text-slate-500 font-medium mt-3">Current corrected totals for today's sales; voids excluded. Payment is not verified.</p>
                 </div>
 
                 {/* 2. TRANSACTIONS TODAY */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-200/80 border-l-4 border-l-blue-500 shadow-sm transition-all hover:shadow-md">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transactions</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Transactions</p>
                             <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                                 {stats.totalSalesToday}
                             </h3>
@@ -146,7 +149,7 @@ const DashboardPage = () => {
                             <TransactionIcon />
                         </div>
                     </div>
-                    <p className="text-xs text-slate-400 font-medium mt-3">Completed checkout transactions today</p>
+                    <p className="text-xs text-slate-500 font-medium mt-3">Sales originally recorded today, excluding retained voids</p>
                 </div>
 
                 {/* 3. LOW STOCK WARNING (LINK) */}
@@ -166,7 +169,7 @@ const DashboardPage = () => {
                                 <AlertTriangleIcon />
                             </div>
                         </div>
-                        <p className="text-xs text-rose-500/80 font-medium mt-3">Items at or below safety threshold (≤ 10)</p>
+                        <p className="text-xs text-rose-700 font-medium mt-3">Items at or below safety threshold (≤ 10)</p>
                     </div>
                 </Link>
 
@@ -176,7 +179,7 @@ const DashboardPage = () => {
                         <div className="flex items-start justify-between">
                             <div className="space-y-1">
                                 <div className="flex items-center gap-1.5">
-                                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Expiring Soon</p>
+                                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Expired or due soon</p>
                                     <ArrowRightIcon />
                                 </div>
                                 <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -187,7 +190,7 @@ const DashboardPage = () => {
                                 <CalendarExpirationsIcon />
                             </div>
                         </div>
-                        <p className="text-xs text-slate-400 font-medium mt-3">Expiring within 90 days (out of {stats.totalMedicines} total)</p>
+                        <p className="text-xs text-slate-500 font-medium mt-3">Expired or due within 90 days (out of {stats.totalMedicines} total)</p>
                     </div>
                 </Link>
 
@@ -198,9 +201,9 @@ const DashboardPage = () => {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-base font-bold text-slate-900">Weekly Revenue Trend</h2>
-                        <p className="text-xs text-slate-500">Gross transaction totals over the last 7 calendar days</p>
+                        <p className="text-xs text-slate-500">Current corrected totals by original sale day over the last 7 calendar days; voids excluded</p>
                     </div>
-                    <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                    <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
                         7-Day Window
                     </span>
                 </div>
@@ -211,37 +214,37 @@ const DashboardPage = () => {
                             <BarChart data={stats.weeklySales} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#2563eb" stopOpacity={1} />
-                                        <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.85} />
+                                        <stop offset="0%" stopColor="var(--action-primary)" stopOpacity={1} />
+                                        <stop offset="100%" stopColor="var(--action-primary)" stopOpacity={0.72} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-decorative)" />
                                 <XAxis 
                                     dataKey="dateLabel" 
                                     axisLine={false} 
                                     tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
+                                    tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}
                                     dy={10}
                                 />
                                 <YAxis 
                                     axisLine={false} 
                                     tickLine={false} 
-                                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }} 
+                                    tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}
                                     tickFormatter={(value) => `₱${value}`}
                                 />
                                 <Tooltip 
-                                    cursor={{ fill: '#f1f5f9', radius: 6 }}
-                                    formatter={(value: any) => [`₱${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
+                                    cursor={{ fill: 'var(--surface-subtle)', radius: 6 }}
+                                    formatter={(value: unknown) => [`₱${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 'Revenue']}
                                     contentStyle={{ 
-                                        backgroundColor: '#0f172a', 
+                                        backgroundColor: 'var(--surface)',
                                         borderRadius: '12px', 
-                                        border: 'none', 
-                                        color: '#fff',
+                                        border: '1px solid var(--border-decorative)',
+                                        color: 'var(--text-primary)',
                                         boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                                         padding: '10px 14px'
                                     }}
-                                    itemStyle={{ color: '#38bdf8', fontWeight: 600, fontSize: '13px' }}
-                                    labelStyle={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}
+                                    itemStyle={{ color: 'var(--action-primary)', fontWeight: 600, fontSize: '13px' }}
+                                    labelStyle={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}
                                 />
                                 <Bar 
                                     dataKey="totalAmount"
@@ -252,12 +255,19 @@ const DashboardPage = () => {
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                        <div className="h-full flex flex-col items-center justify-center text-slate-500 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
                             <p className="text-sm font-medium">No sales recorded during the last 7 days.</p>
-                            <p className="text-xs text-slate-400 mt-0.5">Process new sales via the POS Terminal to view visual trendlines.</p>
+                            <p className="text-xs text-slate-500 mt-0.5">Process new sales via the POS Terminal to view visual trendlines.</p>
                         </div>
                     )}
                 </div>
+                {stats.weeklySales && stats.weeklySales.length > 0 && (
+                    <table className="sr-only">
+                        <caption>Recorded sales totals for days represented in the chart</caption>
+                        <thead><tr><th scope="col">Day</th><th scope="col">Sales total</th></tr></thead>
+                        <tbody>{stats.weeklySales.map((day, index) => <tr key={`${day.dateLabel}-${index}`}><th scope="row">{day.dateLabel}</th><td>₱{day.totalAmount.toFixed(2)}</td></tr>)}</tbody>
+                    </table>
+                )}
             </div>
 
             {/* BOTTOM ROW: QUICK ACTIONS HUB */}
@@ -272,7 +282,7 @@ const DashboardPage = () => {
                         <div className="space-y-1">
                             <h3 className="font-bold text-blue-950 text-lg">POS Sales Terminal</h3>
                             <p className="text-xs text-slate-600 leading-relaxed">
-                                Dispense medication, calculate cart totals, deduct stock inventory atomically, and generate official receipts.
+                                Find medicines, review the cart, record sales, and print sale receipts.
                             </p>
                         </div>
                     </div>
@@ -294,7 +304,9 @@ const DashboardPage = () => {
                         <div className="space-y-1">
                             <h3 className="font-bold text-slate-900 text-lg">Inventory & Stock Control</h3>
                             <p className="text-xs text-slate-600 leading-relaxed">
-                                Review full catalog stock counts, restock low items, adjust unit pricing, or track upcoming product expiries.
+                                {user?.role === 'Admin'
+                                    ? 'Review stock and expiry dates, then update medicines or restock where needed.'
+                                    : 'Review stock and expiry dates. An administrator manages medicine changes and restocking.'}
                             </p>
                         </div>
                     </div>
@@ -302,7 +314,7 @@ const DashboardPage = () => {
                         to="/inventory" 
                         className="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-all hover:-translate-y-0.5"
                     >
-                        <span>Manage Inventory Catalog</span>
+                        <span>{user?.role === 'Admin' ? 'Manage Inventory Catalog' : 'View Inventory Catalog'}</span>
                         <ArrowRightIcon />
                     </Link>
                 </div>

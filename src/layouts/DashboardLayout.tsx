@@ -1,7 +1,9 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Suspense, useState } from 'react'; 
+import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
+import { Suspense, useState } from 'react';
 import PageSkeleton from '../components/common/PageSkeleton'; 
+import { useFocusTrap } from '../components/common/useFocusTrap';
 
 // Native SVG Icons (Article VII Compliance - Zero Third-Party Dependencies)
 const BrandLogoIcon = () => (
@@ -72,9 +74,15 @@ const CloseDrawerIcon = () => (
 
 const DashboardLayout = () => {
     const { user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const navigationRef = useFocusTrap<HTMLElement>(mobileOpen, () => setMobileOpen(false), '[aria-label="Close navigation"]');
+
+    const closeMobileNavigation = () => {
+        setMobileOpen(false);
+    };
 
     const handleLogout = () => {
         logout();
@@ -86,7 +94,7 @@ const DashboardLayout = () => {
         { label: 'Overview', path: '/dashboard', roles: ['Admin', 'Pharmacist'], icon: DashboardIcon },
         { label: 'POS Terminal', path: '/sales', roles: ['Admin', 'Pharmacist'], icon: PosIcon },
         { label: 'Sales History', path: '/history', roles: ['Admin', 'Pharmacist'], icon: HistoryIcon },
-        { label: 'Inventory', path: '/inventory', roles: ['Admin'], icon: InventoryIcon },
+        { label: 'Inventory', path: '/inventory', roles: ['Admin', 'Pharmacist'], icon: InventoryIcon },
         { label: 'Categories', path: '/categories', roles: ['Admin'], icon: CategoryIcon },
         { label: 'User Management', path: '/users', roles: ['Admin'], icon: UsersIcon },
     ];
@@ -98,23 +106,26 @@ const DashboardLayout = () => {
     const currentRouteLabel = navItems.find(i => i.path === location.pathname)?.label || 'Dashboard';
 
     return (
-        <div className="flex h-screen bg-slate-100/80 font-sans antialiased text-slate-900 overflow-hidden">
+        <div className="app-shell flex h-screen bg-[var(--canvas)] font-sans antialiased text-[var(--text-primary)] overflow-hidden">
+            <a className="skip-link" href="#main-content">Skip to main content</a>
             
             {/* MOBILE DRAWER OVERLAY (< 1024px) */}
             {mobileOpen && (
-                <div 
-                    onClick={() => setMobileOpen(false)}
+                <button
+                    type="button"
+                    aria-label="Close navigation"
+                    onClick={closeMobileNavigation}
                     className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
                 />
             )}
 
             {/* SIDEBAR CONTAINER (Desktop Fixed + Mobile Off-Canvas) */}
-            <aside className={`
+            <aside ref={navigationRef} id="workspace-navigation" tabIndex={-1} className={`
                 fixed lg:static inset-y-0 left-0 z-50
-                w-72 bg-slate-900 text-slate-300 flex flex-col justify-between
+                w-72 bg-[var(--nav-canvas)] text-slate-300 flex flex-col justify-between
                 border-r border-slate-800 shadow-2xl lg:shadow-none
                 transform transition-transform duration-200 ease-in-out
-                ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                ${mobileOpen ? 'translate-x-0 visible' : '-translate-x-full invisible lg:translate-x-0 lg:visible'}
             `}>
                 {/* BRAND HEADER */}
                 <div className="p-6 border-b border-slate-800/80 flex items-center justify-between">
@@ -132,7 +143,8 @@ const DashboardLayout = () => {
                         </div>
                     </div>
                     <button 
-                        onClick={() => setMobileOpen(false)}
+                        type="button"
+                        onClick={closeMobileNavigation}
                         className="lg:hidden p-1 rounded-lg hover:bg-slate-800"
                         aria-label="Close navigation"
                     >
@@ -141,7 +153,7 @@ const DashboardLayout = () => {
                 </div>
 
                 {/* NAVIGATION ROUTE LIST */}
-                <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
+                <nav aria-label="Main navigation" className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
                     {visibleNavItems.map((item) => {
                         const isActive = location.pathname === item.path;
                         const IconComponent = item.icon;
@@ -150,6 +162,7 @@ const DashboardLayout = () => {
                             <Link 
                                 key={item.path}
                                 to={item.path}
+                                aria-current={isActive ? 'page' : undefined}
                                 onClick={() => setMobileOpen(false)}
                                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-150 group
                                     ${isActive 
@@ -195,31 +208,41 @@ const DashboardLayout = () => {
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 
                 {/* SYSTEM TOP HEADER */}
-                <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/80 shadow-xs flex items-center justify-between px-4 sm:px-6 z-10">
+                <header className="min-h-16 bg-[var(--surface)] backdrop-blur-md border-b border-[var(--border-decorative)] shadow-xs flex items-center justify-between px-4 sm:px-6 z-10">
                     <div className="flex items-center gap-3">
                         <button 
+                            type="button"
                             onClick={() => setMobileOpen(true)}
+                            aria-controls="workspace-navigation"
+                            aria-expanded={mobileOpen}
                             className="lg:hidden p-2 rounded-xl hover:bg-slate-100 border border-slate-200"
                             aria-label="Open mobile menu"
                         >
                             <MenuToggleIcon />
                         </button>
-                        <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                        <h1 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">
                             {currentRouteLabel}
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs font-semibold text-slate-500">
-                        <span className="hidden sm:inline-block text-slate-400">Terminal Status:</span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            Connected
-                        </span>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={toggleTheme}
+                        className="workspace-theme-toggle inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold"
+                        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    >
+                        {theme === 'dark' ? (
+                            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+                        ) : (
+                            <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3Z"/></svg>
+                        )}
+                        <span className="hidden sm:inline">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+                    </button>
                 </header>
 
                 {/* SCROLLABLE ROUTE CONTENT BOUNDARY */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                <div id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
                     <Suspense key={location.pathname} fallback={<PageSkeleton />}>
                         <Outlet />
                     </Suspense>

@@ -1,7 +1,8 @@
 // src/features/users/ProfilePage.tsx
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import { updateProfile, uploadProfilePhoto, getMyProfile } from '../../services/userService';
+import axios from 'axios';
 
 // Native SVG Icons (Article VII Compliance - Zero External Dependencies)
 const CameraIcon = () => (
@@ -12,13 +13,13 @@ const CameraIcon = () => (
 );
 
 const UserIcon = () => (
-    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
 );
 
 const LockIcon = () => (
-    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
 );
@@ -53,6 +54,7 @@ const ProfilePage = () => {
     
     // Form State
     const [userName, setUserName] = useState('');
+    const [savedUserName, setSavedUserName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     
@@ -73,6 +75,7 @@ const ProfilePage = () => {
                 const profileData = await getMyProfile();
                 
                 setUserName(profileData.userName);
+                setSavedUserName(profileData.userName);
 
                 if (profileData.profileImagePath) {
                     // Replace the hardcoded "http://localhost:5297/" with:
@@ -83,6 +86,7 @@ const ProfilePage = () => {
                 }
             } catch (error) {
                 console.error("Failed to load profile", error);
+                setMessage({ type: 'error', text: 'Account details could not be loaded. Refresh the page before making changes.' });
             } finally {
                 setLoading(false);
             }
@@ -90,52 +94,65 @@ const ProfilePage = () => {
         loadProfile();
     }, []);
 
+    useEffect(() => () => {
+        if (previewImage) URL.revokeObjectURL(previewImage);
+    }, [previewImage]);
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+                setMessage({ type: 'error', text: 'Choose a JPG or PNG image no larger than 2 MB.' });
+                e.target.value = '';
+                return;
+            }
             setSelectedFile(file);
             setPreviewImage(URL.createObjectURL(file));
+            setMessage({ type: '', text: '' });
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setMessage({ type: '', text: '' });
+        if (password !== confirmPassword) {
+            setMessage({ type: 'error', text: 'New password and confirmation do not match.' });
+            return;
+        }
+        if (password && password.length < 6) {
+            setMessage({ type: 'error', text: 'The new password must be at least 6 characters.' });
+            return;
+        }
+        const credentialsChanged = userName.trim() !== savedUserName || Boolean(password);
+        if (!credentialsChanged && !selectedFile) {
+            setMessage({ type: 'success', text: 'There are no changes to save.' });
+            return;
+        }
+        setLoading(true);
+        let credentialsSaved = false;
 
         try {
+            if (credentialsChanged) {
+                await updateProfile({ username: userName.trim(), password: password || undefined });
+                credentialsSaved = true;
+                setSavedUserName(userName.trim());
+                setPassword('');
+                setConfirmPassword('');
+            }
             if (selectedFile) {
-                await uploadProfilePhoto(selectedFile);
+                const imageUrl = await uploadProfilePhoto(selectedFile);
+                setProfileImageServerUrl(imageUrl);
+                setPreviewImage(null);
+                setSelectedFile(null);
             }
-
-            if (password && password !== confirmPassword) {
-                throw new Error("New password and confirmation do not match.");
-            }
-
-            await updateProfile({
-                userName: userName,
-                email: "placeholder@email.com",
-                password: password || undefined 
-            });
-
-            setMessage({ type: 'success', text: 'Profile preferences updated successfully! Please re-login to synchronize token claims.' });
-            setPassword('');
-            setConfirmPassword('');
-            
-            const updatedProfile = await getMyProfile();
-            if (updatedProfile.profileImagePath) {
-                 // Replace the hardcoded "http://localhost:5297/" with:
-            const backendRoot = import.meta.env.VITE_API_URL 
-                ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') 
-                : 'http://localhost:5297';
-
-                setProfileImageServerUrl(`${backendRoot}/${updatedProfile.profileImagePath.replace(/^\/+/, '')}`);
-                 setPreviewImage(null);
-            }
-
-        } catch (error: any) {``
+            setMessage({ type: 'success', text: credentialsChanged ? 'Account changes saved. Sign in again to refresh your account name.' : 'Profile photo updated.' });
+        } catch (error: unknown) {
             console.error(error);
-            setMessage({ type: 'error', text: error.response?.data?.message || error.message || "Failed to update account settings." });
+            const serverMessage = axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message : undefined;
+            const message = error instanceof Error ? error.message : undefined;
+            setMessage({ type: 'error', text: credentialsSaved
+                ? `Account changes saved, but the photo could not be uploaded. ${serverMessage || message || 'Try the photo again.'}`
+                : serverMessage || message || 'Failed to update account settings.' });
         } finally {
             setLoading(false);
         }
@@ -145,10 +162,10 @@ const ProfilePage = () => {
         <div className="max-w-3xl mx-auto space-y-6 antialiased">
             
             {/* HEADER */}
-            <header className="bg-white p-6 rounded-2xl border border-slate-200/80 border-l-4 border-l-purple-600 shadow-sm flex items-center justify-between">
+            <header className="bg-white p-6 rounded-2xl border border-slate-200/80 border-l-4 border-l-purple-600 shadow-sm flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Account Profile</h1>
-                    <p className="text-sm text-slate-500 mt-0.5">Manage personal credentials, avatar representation, and account security</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Update your name, password, and profile photo.</p>
                 </div>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider ${
                     user?.role === 'Admin' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -163,7 +180,7 @@ const ProfilePage = () => {
                 
                 {/* Status Banners */}
                 {message.text && (
-                    <div className={`mb-6 p-4 rounded-xl border flex items-start gap-3 ${
+                    <div role={message.type === 'error' ? 'alert' : 'status'} className={`mb-6 p-4 rounded-xl border flex items-start gap-3 ${
                         message.type === 'success' 
                             ? 'bg-emerald-50 border-emerald-200/80 text-emerald-800' 
                             : 'bg-rose-50 border-rose-200/80 text-rose-800'
@@ -191,26 +208,27 @@ const ProfilePage = () => {
                             </div>
 
                             {/* Camera Overlay Trigger */}
-                            <label className="absolute -bottom-2 -right-2 p-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl shadow-md border border-slate-200 cursor-pointer transition-all hover:scale-105">
+                            <label htmlFor="profile-photo" className="absolute -bottom-2 -right-2 p-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl shadow-md border border-slate-200 cursor-pointer transition-all hover:scale-105 focus-within:ring-2 focus-within:ring-[var(--focus)]" aria-label="Choose profile photo">
                                 <CameraIcon />
-                                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                <input id="profile-photo" type="file" className="sr-only" accept=".jpg,.jpeg,.png" aria-label="Choose profile photo" onChange={handleFileChange} />
                             </label>
                         </div>
 
                         <div className="text-center">
                             <p className="text-xs font-bold text-slate-700">Profile Photo</p>
-                            <p className="text-[11px] text-slate-400 mt-0.5">Supports JPG, JPEG, and PNG formats (Max 2MB)</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">Supports JPG, JPEG, and PNG formats (Max 2MB)</p>
                         </div>
                     </div>
 
                     {/* ACCOUNT DETAILS */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Account Details</h3>
+                        <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Account Details</h3>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">System Role</label>
+                                <label htmlFor="profile-role" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">System Role</label>
                                 <input 
+                                    id="profile-role"
                                     disabled 
                                     type="text" 
                                     value={user?.role} 
@@ -219,12 +237,13 @@ const ProfilePage = () => {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Username</label>
+                                <label htmlFor="profile-username" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Username</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <UserIcon />
                                     </div>
                                     <input 
+                                        id="profile-username"
                                         required
                                         type="text" 
                                         value={userName}
@@ -238,16 +257,17 @@ const ProfilePage = () => {
 
                     {/* SECURITY CREDENTIALS */}
                     <div className="space-y-4 pt-4 border-t border-slate-100">
-                        <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Security & Credentials</h3>
+                        <h3 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider">Security & Credentials</h3>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">New Password</label>
+                                <label htmlFor="profile-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">New Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <LockIcon />
                                     </div>
                                     <input 
+                                        id="profile-password"
                                         type="password" 
                                         placeholder="Blank keeps existing"
                                         value={password}
@@ -258,12 +278,13 @@ const ProfilePage = () => {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Confirm New Password</label>
+                                <label htmlFor="profile-password-confirm" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Confirm New Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <LockIcon />
                                     </div>
                                     <input 
+                                        id="profile-password-confirm"
                                         type="password" 
                                         placeholder="Re-enter new password"
                                         value={confirmPassword}

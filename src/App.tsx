@@ -1,34 +1,31 @@
-import { lazy } from 'react'; // No need to import Suspense here anymore
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute, RoleRoute } from './routes/ProtectedRoutes';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './features/auth/Login';
 
-// --- DEMO HELPER: ROBUST DELAY ---
-// We use Promise.all to ensure we wait for the timer AND the import.
-// This is more robust than the previous chaining method.
-const delayForDemo = (importPromise: Promise<any>) => {
-  return Promise.all([
-    importPromise,
-    new Promise(resolve => setTimeout(resolve, 1500)) // 1.5s Wait
-  ]).then(([module]) => module);
-};
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
+const InventoryPage = lazy(() => import('./features/inventory/InventoryPage'));
+const POSTerminalPage = lazy(() => import('./features/pos/POSTerminalPage'));
+const SalesHistoryPage = lazy(() => import('./features/sales/SalesHistoryPage'));
+const UserManagementPage = lazy(() => import('./features/users/UserManagementPage'));
+const CategoryManagementPage = lazy(() => import('./features/categories/CategoryManagementPage'));
+const ProfilePage = lazy(() => import('./features/users/ProfilePage'));
 
-// --- LAZY IMPORTS ---
-const DashboardPage = lazy(() => delayForDemo(import('./features/dashboard/DashboardPage')));
-const InventoryPage = lazy(() => delayForDemo(import('./features/inventory/InventoryPage')));
-const POSTerminalPage = lazy(() => delayForDemo(import('./features/pos/POSTerminalPage')));
-const SalesHistoryPage = lazy(() => delayForDemo(import('./features/sales/SalesHistoryPage')));
-const UserManagementPage = lazy(() => delayForDemo(import('./features/users/UserManagementPage')));
-const CategoryManagementPage = lazy(() => delayForDemo(import('./features/categories/CategoryManagementPage')));
-const ProfilePage = lazy(() => delayForDemo(import('./features/users/ProfilePage')));
-
-const Unauthorized = () => <div className="p-8 text-center text-red-600 font-bold text-xl">Access Denied</div>;
+const Unauthorized = () => (
+  <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--canvas)] p-8 text-center text-[var(--text-primary)]">
+    <h1 className="text-2xl font-bold">Access denied</h1>
+    <p className="max-w-md text-[var(--text-secondary)]">Your account does not have permission to open this page.</p>
+    <Link to="/dashboard" className="rounded-lg bg-[var(--action-primary)] px-4 py-2 font-semibold text-[var(--action-on-primary)] focus-visible:outline-3 focus-visible:outline-offset-3 focus-visible:outline-[var(--focus)]">Return to overview</Link>
+  </main>
+);
 
 function App() {
   return (
-    <AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -47,10 +44,10 @@ function App() {
               <Route element={<RoleRoute allowedRoles={['Admin', 'Pharmacist']} />}>
                 <Route path="/sales" element={<POSTerminalPage />} />
                 <Route path="/history" element={<SalesHistoryPage />} />
+                <Route path="/inventory" element={<InventoryPage />} />
               </Route>
 
               <Route element={<RoleRoute allowedRoles={['Admin']} />}>
-                <Route path="/inventory" element={<InventoryPage />} />
                 <Route path="/users" element={<UserManagementPage />} />
                 <Route path="/categories" element={<CategoryManagementPage />} />
               </Route>
@@ -58,7 +55,8 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
