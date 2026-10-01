@@ -1,0 +1,106 @@
+/* Shared semantic colors. Legacy class mappings below keep existing feature screens
+   readable while their controls migrate to semantic components in M4-M7. */
+:root {
+  --canvas: #f6f8fb;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --text-primary: #172334;
+  --text-secondary: #526174;
+  --border-control: #7e8da0;
+  --border-decorative: #cbd5e1;
+  --action-primary: #1d4ed8;
+  --action-on-primary: #ffffff;
+  --focus: #1d4ed8;
+  --positive: #047857;
+  --positive-surface: #ecfdf5;
+  --caution: #92400e;
+  --caution-surface: #fffbeb;
+  --critical: #b91c1c;
+  --critical-surface: #fef2f2;
+  --nav-canvas: #101c2d;
+  --nav-surface: #17263b;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0b1220;
+  --surface: #111c2e;
+  --surface-subtle: #17263b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #b3c1d1;
+  --border-control: #6f8198;
+  --border-decorative: #33465c;
+  --action-primary: #60a5fa;
+  --action-on-primary: #071525;
+  --focus: #93c5fd;
+  --positive: #4ade80;
+  --positive-surface: #123b32;
+  --caution: #fbbf24;
+  --caution-surface: #3a2b16;
+  --critical: #f87171;
+  --critical-surface: #3a2029;
+  --nav-canvas: #080f1c;
+  --nav-surface: #111c2e;
+  color-scheme: dark;
+}
+
+.app-shell {
+  background: var(--canvas);
+  color: var(--text-primary);
+}
+
+.app-shell :is(button, a, input, select, textarea):focus-visible,
+.app-shell .skip-link:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.app-shell :is(input, select, textarea) {
+  color: var(--text-primary);
+  border-color: var(--border-control);
+}
+
+.app-shell :is(input, select, textarea)::placeholder { color: var(--text-secondary); }
+.app-shell :is(input, select, textarea):disabled { opacity: .6; cursor: not-allowed; }
+.app-shell .workspace-primary-action { background: var(--action-primary); color: var(--action-on-primary); }
+.app-shell .workspace-primary-action:hover { filter: brightness(1.08); }
+.app-shell .workspace-primary-action svg { color: var(--action-on-primary); }
+.app-shell :is([class~="bg-blue-600"], [class~="bg-purple-600"]) { background-color: var(--action-primary); }
+.app-shell :is([class~="bg-blue-600"], [class~="bg-purple-600"])[class~="text-white"] { color: var(--action-on-primary); }
+.app-shell :is([class~="bg-blue-600"], [class~="bg-purple-600"]):hover { filter: brightness(1.08); }
+.app-shell .workspace-theme-toggle { border: 1px solid var(--border-control); background: var(--surface-subtle); color: var(--text-primary); }
+.app-shell .workspace-theme-toggle:hover { background: var(--canvas); }
+.app-shell .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; padding: .75rem 1rem; background: var(--action-primary); color: var(--action-on-primary); border-radius: .75rem; }
+.app-shell .skip-link:focus { top: 1rem; }
+
+/* Temporary bridge for the existing Tailwind surfaces and statuses. */
+:root[data-theme="dark"] .app-shell :is([class~="bg-white"], [class~="bg-white/80"]) { background-color: var(--surface); }
+:root[data-theme="dark"] .app-shell :is([class~="bg-slate-50"], [class~="bg-slate-50/50"], [class~="bg-slate-50/70"], [class~="bg-slate-50/80"], [class~="bg-slate-100"], [class~="bg-slate-100/70"], [class~="bg-slate-100/80"], [class~="bg-slate-200"], [class~="bg-gray-100"]) { background-color: var(--surface-subtle); }
+:root[data-theme="dark"] .app-shell :is([class~="text-slate-900"], [class~="text-slate-800"], [class~="text-slate-700"], [class~="text-gray-800"], [class~="text-gray-700"], [class~="text-blue-950"]) { color: var(--text-primary); }
+:root[data-theme="dark"] .app-shell :is([class~="text-slate-600"], [class~="text-slate-500"], [class~="text-slate-400"], [class~="text-gray-500"], [class~="text-gray-600"], [class~="placeholder-slate-400"]) { color: var(--text-secondary); }
+:root[data-theme="dark"] .app-shell :is([class~="border-slate-100"], [class~="border-slate-200"], [class~="border-slate-200/60"], [class~="border-slate-200/80"], [class~="border-slate-300"], [class~="border-gray-200"], [class~="border-blue-100"], [class~="border-blue-100/80"], [class~="border-blue-200/60"]) { border-color: var(--border-decorative); }
+:root[data-theme="dark"] .app-shell :is([class~="bg-blue-50"], [class~="bg-blue-50/80"], [class~="bg-purple-50"], [class~="bg-purple-100"]) { background-color: var(--surface-subtle); }
+:root[data-theme="dark"] .app-shell :is([class~="text-blue-600"], [class~="text-blue-700"], [class~="text-blue-800"], [class~="text-purple-600"], [class~="text-purple-700"]) { color: var(--action-primary); }
+:root[data-theme="dark"] .app-shell :is([class~="border-blue-200"], [class~="border-purple-200"]) { border-color: var(--border-decorative); }
+:root[data-theme="dark"] .app-shell :is([class~="bg-emerald-50"], [class~="bg-emerald-100"], [class~="bg-green-50"], [class~="bg-green-100"]) { background-color: var(--positive-surface); }
+:root[data-theme="dark"] .app-shell :is([class~="text-emerald-600"], [class~="text-emerald-700"], [class~="text-emerald-800"], [class~="text-green-700"]) { color: var(--positive); }
+:root[data-theme="dark"] .app-shell :is([class~="border-emerald-100"], [class~="border-emerald-200"], [class~="border-emerald-200/60"], [class~="border-emerald-200/80"], [class~="border-green-200"]) { border-color: var(--positive); }
+:root[data-theme="dark"] .app-shell :is([class~="bg-amber-50"], [class~="bg-amber-50/60"], [class~="bg-amber-100"], [class~="bg-amber-100/60"]) { background-color: var(--caution-surface); }
+:root[data-theme="dark"] .app-shell :is([class~="text-amber-600"], [class~="text-amber-700"]) { color: var(--caution); }
+:root[data-theme="dark"] .app-shell :is([class~="border-amber-100"], [class~="border-amber-200"]) { border-color: var(--caution); }
+:root[data-theme="dark"] .app-shell :is([class~="bg-rose-50"], [class~="bg-rose-50/60"], [class~="bg-rose-100"], [class~="bg-rose-100/60"], [class~="bg-red-100"]) { background-color: var(--critical-surface); }
+:root[data-theme="dark"] .app-shell :is([class~="text-rose-500"], [class~="text-rose-600"], [class~="text-rose-700"], [class~="text-rose-800"], [class~="text-red-600"], [class~="text-red-700"]) { color: var(--critical); }
+:root[data-theme="dark"] .app-shell :is([class~="border-rose-200"], [class~="border-rose-200/80"], [class~="border-red-200"]) { border-color: var(--critical); }
+:root[data-theme="dark"] .app-shell [class~="bg-gradient-to-br"] { background-image: none; background-color: var(--surface-subtle); }
+:root[data-theme="dark"] .app-shell [class~="divide-slate-100"] > :not(:last-child) { border-color: var(--border-decorative); }
+:root[data-theme="dark"] .app-shell [class~="hover:bg-slate-50/80"]:hover,
+:root[data-theme="dark"] .app-shell [class~="hover:bg-slate-100"]:hover,
+:root[data-theme="dark"] .app-shell [class~="hover:bg-slate-200"]:hover { background-color: var(--surface-subtle); }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+@media print {
+  #printable-receipt, #printable-receipt * { color: #000 !important; background: #fff !important; }
+}
