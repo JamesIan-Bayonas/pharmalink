@@ -17,15 +17,13 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
-    userName: string;
-    email: string;
+    username: string;
     password?: string; 
     role: string;
 }
 
 export interface UpdateProfileRequest {
-    userName: string;
-    email: string;
+    username: string;
     password?: string; // Optional, only if changing
 }
 
@@ -35,8 +33,7 @@ export const getAllUsers = async (): Promise<UserResponse[]> => {
 };
 
 export const deleteUser = async (id: number): Promise<void> => {
-    // We target the 'Users' controller directly, not 'Auth'
-    await api.delete(`/Users/${id}`); 
+    await api.delete(`/Auth/delete/${id}`);
 };
 
 // We use the Auth registration endpoint, but call it from inside the app
