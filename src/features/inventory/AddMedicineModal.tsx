@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { createMedicine, updateMedicine, type CreateMedicineRequest, type Medicine } from '../../services/medicineService';
 import { getAllCategories, type Category } from '../../services/categoryService';
+import ModalFrame from '../../components/common/ModalFrame';
 
 interface AddMedicineModalProps {
     isOpen: boolean;
@@ -24,11 +26,14 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
     });
 
     const [loading, setLoading] = useState(false);
+    const [categoriesLoading, setCategoriesLoading] = useState(false);
     const [error, setError] = useState('');
 
     // Load Categories when Modal opens
     useEffect(() => {
         if (isOpen) {
+            setError('');
+            setCategoriesLoading(true);
             const loadCategories = async () => {
                 try {
                     const data = await getAllCategories();
@@ -55,7 +60,11 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
                         });
                     }
                 } catch (err) {
-                    console.error("Failed to load categories");
+                    console.error("Failed to load categories", err);
+                    setCategories([]);
+                    setError('Categories could not be loaded. Close this form and try again.');
+                } finally {
+                    setCategoriesLoading(false);
                 }
             };
             loadCategories();
@@ -64,6 +73,10 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (categoriesLoading || !categories.some(category => category.id === formData.categoryId)) {
+            setError('Select an available category before saving.');
+            return;
+        }
         setLoading(true);
         setError('');
 
@@ -81,8 +94,9 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
                 name: '', categoryId: categories[0]?.id || 0, price: 0, 
                 stockQuantity: 0, expiryDate: '', description: ''
             });
-        } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to save medicine");
+        } catch (err: unknown) {
+            const message = axios.isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+            setError(message || "Failed to save medicine. Your entries are still here.");
         } finally {
             setLoading(false);
         }
@@ -91,19 +105,19 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-                <h2 className="text-xl font-bold mb-4">
+        <ModalFrame titleId="medicine-form-title" onClose={onClose} busy={loading} initialFocusSelector="#medicine-name">
+                <h2 id="medicine-form-title" className="text-xl font-bold mb-4">
                     {medicineToEdit ? 'Edit Medicine' : 'Add New Medicine'}
                 </h2>
                 
-                {error && <div className="mb-4 p-2 bg-red-100 text-red-700 text-sm rounded">{error}</div>}
+                {error && <div role="alert" className="mb-4 p-2 bg-red-100 text-red-700 text-sm rounded">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-medium">Medicine Name</label>
+                        <label htmlFor="medicine-name" className="block text-sm font-medium">Medicine Name</label>
                         <input 
+                            id="medicine-name"
                             required
                             type="text" 
                             className="w-full border p-2 rounded"
@@ -114,12 +128,14 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
 
                     {/* Category Dropdown */}
                     <div>
-                        <label className="block text-sm font-medium">Category</label>
+                        <label htmlFor="medicine-category" className="block text-sm font-medium">Category</label>
                         <select 
+                            id="medicine-category"
                             className="w-full border p-2 rounded"
                             value={formData.categoryId}
                             onChange={e => setFormData({...formData, categoryId: Number(e.target.value)})}
                         >
+                            <option value={0} disabled>{categoriesLoading ? 'Loading categories...' : 'Select a category'}</option>
                             {categories.map(cat => (
                                 <option key={cat.id} value={cat.id}>{cat.name}</option>
                             ))}
@@ -129,10 +145,12 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
                     {/* Price & Stock Row */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium">Price (₱)</label>
+                            <label htmlFor="medicine-price" className="block text-sm font-medium">Price (₱)</label>
                             <input 
+                                id="medicine-price"
                                 required
                                 type="number" 
+                                min="0"
                                 step="0.01"
                                 className="w-full border p-2 rounded"
                                 value={formData.price}
@@ -140,21 +158,25 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium">Stock Qty</label>
+                            <label htmlFor="medicine-stock" className="block text-sm font-medium">Stock quantity</label>
                             <input 
+                                id="medicine-stock"
                                 required
                                 type="number" 
+                                min="0"
                                 className="w-full border p-2 rounded"
                                 value={formData.stockQuantity}
                                 onChange={e => setFormData({...formData, stockQuantity: Number(e.target.value)})}
                             />
+                            {medicineToEdit && <p className="mt-1 text-xs text-[var(--text-secondary)]">This replaces the count. Use Add stock for deliveries.</p>}
                         </div>
                     </div>
 
                     {/* Expiry Date */}
                     <div>
-                        <label className="block text-sm font-medium">Expiry Date</label>
+                        <label htmlFor="medicine-expiry" className="block text-sm font-medium">Expiry Date</label>
                         <input 
+                            id="medicine-expiry"
                             required
                             type="date" 
                             className="w-full border p-2 rounded"
@@ -168,21 +190,21 @@ const AddMedicineModal = ({ isOpen, onClose, onSuccess, medicineToEdit }: AddMed
                         <button 
                             type="button" 
                             onClick={onClose}
+                            disabled={loading}
                             className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
                         >
                             Cancel
                         </button>
                         <button 
                             type="submit" 
-                            disabled={loading}
+                            disabled={loading || categoriesLoading || categories.length === 0}
                             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                         >
                             {loading ? 'Saving...' : (medicineToEdit ? 'Update Medicine' : 'Save Medicine')}
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </ModalFrame>
     );
 };
 
