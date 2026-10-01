@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getAllUsers, deleteUser, type UserResponse } from '../../services/userService';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import UserModal from './UserModal';
+import ConfirmActionDialog from '../../components/common/ConfirmActionDialog';
+import axios from 'axios';
 
 // Native SVG Icons (Article VII Compliance - Zero External Dependencies)
 const UserPlusIcon = () => (
@@ -41,17 +43,24 @@ const UserManagementPage = () => {
     // State
     const [users, setUsers] = useState<UserResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
     
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserResponse | null>(null);
+    const [userToDelete, setUserToDelete] = useState<UserResponse | null>(null);
+    const [actionNotice, setActionNotice] = useState('');
 
     const fetchUsers = async () => {
+        setLoading(true);
+        setLoadError(false);
         try {
             const data = await getAllUsers();
             setUsers(data);
         } catch (error) {
             console.error("Failed to load users", error);
+            setLoadError(true);
+            setUsers([]);
         } finally {
             setLoading(false);
         }
@@ -61,14 +70,10 @@ const UserManagementPage = () => {
         fetchUsers();
     }, []);
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Are you sure you want to remove this user account?")) return;
-        try {
-            await deleteUser(id);
-            setUsers(prev => prev.filter(u => u.id !== id));
-        } catch (error) {
-            alert("Failed to delete user. Verify administrator privileges.");
-        }
+    const handleDelete = async (target: UserResponse) => {
+        await deleteUser(target.id);
+        setUsers(prev => prev.filter(u => u.id !== target.id));
+        setActionNotice(`${target.userName}'s account was deleted.`);
     };
 
     const handleEdit = (user: UserResponse) => {
@@ -114,9 +119,33 @@ const UserManagementPage = () => {
             </header>
 
             {/* USERS DIRECTORY TABLE */}
+            {loadError && (
+                <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    Staff accounts could not be loaded. Check the connection and <button type="button" onClick={fetchUsers} className="font-bold underline">try again</button>.
+                </div>
+            )}
+            {actionNotice && <div role="status" className="rounded-xl border border-[var(--positive)] bg-[var(--positive-surface)] p-4 text-sm text-[var(--positive)]">{actionNotice}</div>}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="md:hidden divide-y divide-[var(--border-decorative)]">
+                    {loading ? <p className="p-6 text-sm text-[var(--text-secondary)]">Loading staff accounts…</p>
+                        : loadError ? null
+                        : users.length === 0 ? <p className="p-6 text-sm text-[var(--text-secondary)]">No staff accounts found.</p>
+                        : users.map(account => (
+                            <article key={account.id} className="space-y-3 p-4">
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2"><h2 className="break-words font-bold">{account.userName}</h2>{account.userName === currentUser?.username && <span className="text-xs font-bold text-[var(--action-primary)]">You</span>}</div>
+                                    <p className="text-xs text-[var(--text-secondary)]">Account #{account.id} · {account.role}</p>
+                                    {account.email && <p className="break-all text-xs text-[var(--text-secondary)]">{account.email}</p>}
+                                </div>
+                                <div className="flex flex-wrap gap-2 border-t border-[var(--border-decorative)] pt-3">
+                                    <button type="button" onClick={() => handleEdit(account)} className="rounded-lg border border-[var(--border-control)] px-3 py-2 text-xs font-bold">Edit account</button>
+                                    {account.userName !== currentUser?.username && <button type="button" onClick={() => { setActionNotice(''); setUserToDelete(account); }} className="rounded-lg border border-[var(--critical)] px-3 py-2 text-xs font-bold text-[var(--critical)]">Delete account</button>}
+                                </div>
+                            </article>
+                        ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full min-w-[720px] text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
                                 <th className="py-3.5 px-6">ID</th>
@@ -128,17 +157,19 @@ const UserManagementPage = () => {
                         <tbody className="divide-y divide-slate-100 text-sm">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={4} className="py-16 text-center text-slate-400">
+                                    <td colSpan={4} className="py-16 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <Spinner />
                                             <p className="text-xs font-semibold">Loading Staff Directory...</p>
                                         </div>
                                     </td>
                                 </tr>
+                            ) : loadError ? null : users.length === 0 ? (
+                                <tr><td colSpan={4} className="py-16 text-center text-slate-500">No staff accounts found.</td></tr>
                             ) : users.map((u) => (
                                 <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
                                     {/* Monospace User ID */}
-                                    <td className="py-3.5 px-6 font-mono font-bold text-slate-400 text-xs">
+                                    <td className="py-3.5 px-6 font-mono font-bold text-slate-500 text-xs">
                                         #{u.id}
                                     </td>
                                     
@@ -172,7 +203,7 @@ const UserManagementPage = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <span className="text-xs text-slate-400">{u.email || 'No email registered'}</span>
+                                                <span className="text-xs text-slate-500">{u.email || 'No email registered'}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -204,7 +235,7 @@ const UserManagementPage = () => {
                                             
                                             {u.userName !== currentUser?.username ? (
                                                 <button 
-                                                    onClick={() => handleDelete(u.id)}
+                                                    onClick={() => { setActionNotice(''); setUserToDelete(u); }}
                                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 text-xs font-bold transition-all"
                                                     title="Remove Staff Account"
                                                 >
@@ -231,12 +262,26 @@ const UserManagementPage = () => {
             </div>  
 
             {/* USER REGISTRATION / UPDATE MODAL */}
+            {userToDelete && (
+                <ConfirmActionDialog
+                    title={`Delete ${userToDelete.userName}'s account?`}
+                    description="This removes the staff account and its sign-in access. This action cannot be undone here. Review any sale records linked to the account before continuing."
+                    confirmLabel="Delete staff account"
+                    onConfirm={() => handleDelete(userToDelete)}
+                    onClose={() => setUserToDelete(null)}
+                    getErrorMessage={(error) => {
+                        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+                        return status === 403 ? 'Administrator access is required to delete this account.' : 'The account could not be deleted. It may be linked to existing records; refresh and review it.';
+                    }}
+                />
+            )}
             <UserModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={() => {
                     setIsModalOpen(false);
-                    fetchUsers();
+                    setActionNotice(selectedUser ? `${selectedUser.userName}'s account was updated.` : 'Staff account created.');
+                    void fetchUsers();
                 }}
                 userToEdit={selectedUser}
             />

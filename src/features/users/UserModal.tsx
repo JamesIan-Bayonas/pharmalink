@@ -1,22 +1,25 @@
 import { useState, useEffect } from 'react';
 import { registerUser, updateUser, type UserResponse } from '../../services/userService';
+import type { UpdateUserRequest } from '../../services/userService';
+import axios from 'axios';
+import ModalFrame from '../../components/common/ModalFrame';
 
 // Native SVG Icons (Article VII Compliance - Zero Third-Party Dependencies)
 const CloseIcon = () => (
-    <svg className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-5 h-5 text-slate-500 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
     </svg>
 );
 
 const EyeIcon = () => (
-    <svg className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
 );
 
 const EyeOffIcon = () => (
-    <svg className="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <svg className="w-4 h-4 text-slate-500 hover:text-slate-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 0110.13 3.937C21.268 11.057 17.478 14 13 14c-.62 0-1.222-.057-1.8-.165m-3.8-3.8a3 3 0 114.243 4.243M3 3l18 18" />
     </svg>
 );
@@ -44,7 +47,6 @@ interface UserModalProps {
 const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) => {
     const [formData, setFormData] = useState({
         userName: '',
-        email: '',
         password: '',
         role: 'Pharmacist'
     });
@@ -59,14 +61,12 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
             if (userToEdit) {
                 setFormData({
                     userName: userToEdit.userName,
-                    email: userToEdit.email || '', 
                     password: '', 
                     role: userToEdit.role
                 });
             } else {
                 setFormData({
                     userName: '',
-                    email: '',
                     password: '',
                     role: 'Pharmacist'
                 });
@@ -81,9 +81,8 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
 
         try {
             if (userToEdit) {
-                const payload: any = {
-                    userName: formData.userName,
-                    email: formData.email,
+                const payload: UpdateUserRequest = {
+                    username: formData.userName,
                     role: formData.role
                 };
                 
@@ -102,9 +101,10 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
             
             onSuccess(); 
             onClose();
-        } catch (err: any) {
+        } catch (err: unknown) {
              console.error("Full Error Object:", err);
-             const msg = err.response?.data?.message || err.response?.data?.title || "Operation failed. Check server connection.";
+             const data = axios.isAxiosError<{ message?: string; title?: string }>(err) ? err.response?.data : undefined;
+             const msg = data?.message || data?.title || "Operation failed. Check server connection.";
              setError(msg);
         } finally {
             setLoading(false);
@@ -114,17 +114,18 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200/80 animate-in fade-in zoom-in-95 duration-150">
+        <ModalFrame titleId="user-form-title" onClose={onClose} busy={loading} initialFocusSelector="#user-name">
                 
                 {/* Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                    <h3 id="user-form-title" className="text-lg font-bold text-slate-900 tracking-tight">
                         {userToEdit ? 'Edit User Credentials' : 'Register New Employee'}
                     </h3>
                     <button 
                         type="button" 
                         onClick={onClose}
+                        disabled={loading}
+                        aria-label="Close user form"
                         className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
                     >
                         <CloseIcon />
@@ -133,7 +134,7 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
                 
                 {/* Error Banner */}
                 {error && (
-                    <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
+                    <div role="alert" className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200/80 flex items-start gap-2.5">
                         <AlertCircleIcon />
                         <p className="text-xs font-semibold text-rose-700">{error}</p>
                     </div>
@@ -143,8 +144,9 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                     {/* Username */}
                     <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Username</label>
+                        <label htmlFor="user-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Username</label>
                         <input 
+                            id="user-name"
                             required 
                             type="text" 
                             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 focus:bg-white transition-all"
@@ -156,12 +158,14 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
 
                     {/* Password with Masking Toggle */}
                     <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                            Password {userToEdit && <span className="text-slate-400 font-normal text-[11px] uppercase ml-1">(Leave blank to keep current)</span>}
+                        <label htmlFor="user-password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                            Password {userToEdit && <span className="text-slate-500 font-normal text-[11px] uppercase ml-1">(Leave blank to keep current)</span>}
                         </label>
                         <div className="relative">
                             <input 
+                                id="user-password"
                                 required={!userToEdit}
+                                minLength={6}
                                 type={showPassword ? 'text' : 'password'}
                                 className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 focus:bg-white transition-all"
                                 value={formData.password}
@@ -170,7 +174,6 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
                             />
                             <button
                                 type="button"
-                                tabIndex={-1}
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute inset-y-0 right-0 pr-3 flex items-center justify-center min-w-[44px]"
                                 aria-label={showPassword ? "Hide password" : "Show password"}
@@ -182,13 +185,14 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
 
                     {/* Role Selector */}
                     <div className="space-y-1">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Role Privilege</label>
+                        <label htmlFor="user-role" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Role Privilege</label>
                         <select 
+                            id="user-role"
                             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-purple-600/20 focus:border-purple-600 focus:bg-white transition-all cursor-pointer"
                             value={formData.role}
                             onChange={e => setFormData({...formData, role: e.target.value})}
                         >
-                            <option value="Pharmacist">Pharmacist (POS & Sales Access)</option>
+                            <option value="Pharmacist">Pharmacist (sales and read-only inventory)</option>
                             <option value="Admin">Admin (Full System Privilege)</option>
                         </select>
                     </div>
@@ -198,6 +202,7 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
                         <button 
                             type="button" 
                             onClick={onClose} 
+                            disabled={loading}
                             className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
                         >
                             Cancel
@@ -221,8 +226,7 @@ const UserModal = ({ isOpen, onClose, onSuccess, userToEdit }: UserModalProps) =
                     </div>
                 </form>
 
-            </div>
-        </div>
+        </ModalFrame>
     );
 };
 
